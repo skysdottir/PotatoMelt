@@ -40,7 +40,7 @@ bool rc_get_is_lr_in_normal_deadzone();
 
 #define FORBACK_MIN_THRESH_PULSE_LENGTH 100       //pulse length must differ by this much from CENTER_FORBACK_PULSE_LENGTH to be considered going forward or back
 
-#define LR_CONFIG_MODE_DEADZONE_WIDTH 1024         //deadzone for LR when in config mode (in US) - prevents unintended tracking adjustments
+#define LR_CONFIG_MODE_DEADZONE_WIDTH 100         //deadzone for LR when in config mode (in US) - prevents unintended tracking adjustments
 #define LR_NORMAL_DEADZONE_WIDTH 25               //deadzone for normal drive - can help with unintentional drift when moving forward / back
 
 #define MAX_MS_BETWEEN_RC_UPDATES 900             //if we don't get a valid RC update on the throttle at least this often - spin down
