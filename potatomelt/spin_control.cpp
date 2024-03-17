@@ -126,7 +126,6 @@ static struct melty_parameters_t handle_config_mode(struct melty_parameters_t me
   
   //if forback backward - do LED heading adjustment (don't translate)
   if (melty_parameters.translate_forback == RC_FORBACK_BACKWARD) {
-    
     //LED heading offset adjustment overrides steering
     melty_parameters.steering_disabled = 1;
     
@@ -159,19 +158,9 @@ static struct melty_parameters_t get_melty_parameters(void) {
 
   float led_offset_portion = led_offset_percent / 100.0f;
 
-  melty_parameters.throttle_percent = rc_get_throttle_percent() / 100.0f;
+  melty_parameters.throttle_perk = rc_get_throttle_perk();
 
-  //by default motor_on_portion maps to thottle_percent input - but that can be altered
-  float motor_on_portion = melty_parameters.throttle_percent;
-
-  //changes motor_on_portion to fixed value if we are throttling via PWM if DYNAMIC_PWM_MOTOR_ON_PORTION is defined
-#ifdef DYNAMIC_PWM_MOTOR_ON_PORTION
-  if (THROTTLE_TYPE == DYNAMIC_PWM_THROTTLE) {
-    motor_on_portion = DYNAMIC_PWM_MOTOR_ON_PORTION;
-  }
-#endif 
-
-  float led_on_portion = melty_parameters.throttle_percent;  //LED width changed with throttle percent
+  float led_on_portion = melty_parameters.throttle_perk / 10.24;  //LED width changed with throttle percent
   if (led_on_portion < 0.10f) led_on_portion = 0.10f;
   if (led_on_portion > 0.90f) led_on_portion = 0.90f;
 
@@ -183,16 +172,12 @@ static struct melty_parameters_t get_melty_parameters(void) {
   }
 
   melty_parameters.rotation_interval_us = get_rotation_interval_ms(melty_parameters.steering_disabled) * 1000;
-  
-  //if under defined RPM - just try to spin up (motors on for full rotation)
-  if (melty_parameters.rotation_interval_us > MAX_TRANSLATION_ROTATION_INTERVAL_US) motor_on_portion = 1;
 
   //if we are too slow - don't even try to track heading
   if (melty_parameters.rotation_interval_us > MAX_TRACKING_ROTATION_INTERVAL_US) {
     melty_parameters.rotation_interval_us = MAX_TRACKING_ROTATION_INTERVAL_US;
   }
 
-  unsigned long motor_on_us = motor_on_portion * melty_parameters.rotation_interval_us;
   unsigned long led_on_us = led_on_portion * melty_parameters.rotation_interval_us;
   unsigned long led_offset_us = led_offset_portion * melty_parameters.rotation_interval_us;
 
@@ -209,15 +194,19 @@ static struct melty_parameters_t get_melty_parameters(void) {
   if (melty_parameters.led_stop > melty_parameters.rotation_interval_us)
     melty_parameters.led_stop = melty_parameters.led_stop - melty_parameters.rotation_interval_us;
 
-  //phase 1 timing: for motor_1 in forward translation or motor_2 in reverse
-  //motor "on" period is centered at the halfway point of the rotation cycle (6 o'clock)
-  melty_parameters.motor_start_phase_1 = (melty_parameters.rotation_interval_us / 2) - (motor_on_us / 2);
-  melty_parameters.motor_stop_phase_1 = melty_parameters.motor_start_phase_1 + motor_on_us;
+  // phase transition timing: Currently, only forwards/backwards
+  melty_parameters.motor_start_phase_1 = 0;
+  melty_parameters.motor_start_phase_2 = melty_parameters.rotation_interval_us / 2;
 
-  //phase 2 timing: for motor_2 in forward translation or motor_1 in reverse
-  //180-degree phase shift relative to phase 1, centering the "on" period at the cycle's start/end (12 o'clock)
-  melty_parameters.motor_start_phase_2 = melty_parameters.rotation_interval_us - (motor_on_us / 2);
-  melty_parameters.motor_stop_phase_2 = motor_on_us / 2;
+  int translate_disp = rc_get_trans();
+  // translation control!
+  if (melty_parameters.translate_forback == RC_FORBACK_NEUTRAL) {
+    melty_parameters.throttle_high_perk = melty_parameters.throttle_low_perk = melty_parameters.throttle_perk;
+  }
+  else {
+    melty_parameters.throttle_high_perk = min(melty_parameters.throttle_perk + (translate_disp * melty_parameters.throttle_perk / 512), 1023);
+    melty_parameters.throttle_low_perk = max(melty_parameters.throttle_perk - (translate_disp * melty_parameters.throttle_perk / 512), 0);
+  }
 
   //if the battery voltage is low - shimmer the LED to let user know
 #ifdef BATTERY_ALERT_ENABLED
@@ -228,30 +217,11 @@ static struct melty_parameters_t get_melty_parameters(void) {
 }
 
 //handle translating forward
-static void translate_forward(struct melty_parameters_t melty_parameters, unsigned long time_spent_this_rotation_us) {
-  if (time_spent_this_rotation_us >= melty_parameters.motor_start_phase_1 && time_spent_this_rotation_us <= melty_parameters.motor_stop_phase_1) {
-    motor_1_on(melty_parameters.throttle_percent);
+static void translate_forback(struct melty_parameters_t melty_parameters, unsigned long time_spent_this_rotation_us) {
+  if (time_spent_this_rotation_us >= melty_parameters.motor_start_phase_1 && time_spent_this_rotation_us <= melty_parameters.motor_start_phase_2) {
+    motors_on(melty_parameters.throttle_high_perk, melty_parameters.throttle_low_perk);
   } else {
-    motor_1_coast();
-  }
-  if (time_spent_this_rotation_us >= melty_parameters.motor_start_phase_2 || time_spent_this_rotation_us <= melty_parameters.motor_stop_phase_2) {        
-    motor_2_on(melty_parameters.throttle_percent);
-  } else {
-    motor_2_coast();
-  }
-}
-
-//handle translating backward (motor1 and motor2 timings are swapped - offset by 180 degrees)
-static void translate_backward(struct melty_parameters_t melty_parameters, unsigned long time_spent_this_rotation_us) {
-  if (time_spent_this_rotation_us >= melty_parameters.motor_start_phase_2 || time_spent_this_rotation_us <= melty_parameters.motor_stop_phase_2) {
-    motor_1_on(melty_parameters.throttle_percent);
-  } else {
-    motor_1_coast();
-  }
-  if (time_spent_this_rotation_us >= melty_parameters.motor_start_phase_1 && time_spent_this_rotation_us <= melty_parameters.motor_stop_phase_1) {
-    motor_2_on(melty_parameters.throttle_percent);
-  } else {
-    motor_2_coast();
+    motors_on(melty_parameters.throttle_low_perk, melty_parameters.throttle_high_perk);
   }
 }
 
@@ -302,19 +272,9 @@ void spin_one_rotation(void) {
       melty_parameters_updated_this_rotation = true;
     }
 
-    //if translation direction is RC_FORBACK_NEUTRAL - robot cycles between forward and reverse translation for net zero translation
-    //if motor 2 (or motor 1) is not present - control sequence remains identical (signal still generated for non-connected motor)
-
     //translate forward
-    if (melty_parameters.translate_forback == RC_FORBACK_FORWARD || (melty_parameters.translate_forback == RC_FORBACK_NEUTRAL && cycle_count % 2 == 0)) {
-      translate_forward(melty_parameters, time_spent_this_rotation_us);
-    }
-
-    //translate backward
-    if (melty_parameters.translate_forback == RC_FORBACK_BACKWARD || (melty_parameters.translate_forback == RC_FORBACK_NEUTRAL && cycle_count % 2 == 1)) {
-      translate_backward(melty_parameters, time_spent_this_rotation_us);
-    }
-
+    translate_forback(melty_parameters, time_spent_this_rotation_us);
+   
     //displays heading LED at correct location
     update_heading_led(melty_parameters, time_spent_this_rotation_us);
 

@@ -1,9 +1,9 @@
 //intitialize motors
 void init_motors();
 
-//turn motor_X_on (throttle_percent only used for dynamic PWM throttle mode)
-void motor_1_on(float throttle_percent);
-void motor_2_on(float throttle_percent);
+
+// Motors on!
+void motors_on(int motor_one_throttle_perk, int motor_two_throttle_perk);
 
 //motors shut-down (robot not translating)
 void motor_1_off();

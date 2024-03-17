@@ -15,19 +15,17 @@ bool rc_signal_is_healthy() {
   return IBus.readChannel(7) > 2000;
 }
 
-//returns at integer from 0 to 100 based on throttle position
+//returns at integer from 0 to 1024 based on throttle position
 //default values are intended to have "dead zones" at both top
-//and bottom of stick for 0 and 100 percent
-int rc_get_throttle_percent() {
+//and bottom of stick for 0 and 1024 percent
+int rc_get_throttle_perk() {
 
-  unsigned long pulse_length = IBus.readChannel(2);
+  int pulse_length = IBus.readChannel(2);
 
-  if (pulse_length >= FULL_THROTTLE_PULSE_LENGTH) return 100;
+  if (pulse_length >= FULL_THROTTLE_PULSE_LENGTH) return 1024;
   if (pulse_length <= IDLE_THROTTLE_PULSE_LENGTH) return 0;
 
-  long throttle_percent = (pulse_length - IDLE_THROTTLE_PULSE_LENGTH) * 100;
-  throttle_percent = throttle_percent / (FULL_THROTTLE_PULSE_LENGTH - IDLE_THROTTLE_PULSE_LENGTH);
-  return (int)throttle_percent;
+  return pulse_length - IDLE_THROTTLE_PULSE_LENGTH;
 }
 
 bool rc_get_is_lr_in_config_deadzone() {
@@ -44,7 +42,7 @@ bool rc_get_is_lr_in_normal_deadzone() {
 //returns RC_FORBACK_FORWARD, RC_FORBACK_BACKWARD or RC_FORBACK_NEUTRAL based on stick position
 rc_forback rc_get_forback() {
 
-  unsigned long pulse_length = IBus.readChannel(1);
+  int pulse_length = IBus.readChannel(1);
 
   int rc_forback_offset = pulse_length - CENTER_FORBACK_PULSE_LENGTH;
   if (rc_forback_offset > FORBACK_MIN_THRESH_PULSE_LENGTH) return RC_FORBACK_FORWARD;
@@ -52,11 +50,17 @@ rc_forback rc_get_forback() {
   return RC_FORBACK_NEUTRAL;
 }
 
+// Returns -512 -> 512 for the forwards-backwards axis
+int rc_get_trans() {
+  int stick_position = IBus.readChannel(1);
+  return stick_position - CENTER_FORBACK_PULSE_LENGTH;
+}
+
 //returns offset in microseconds from center value (not converted to percentage)
 //0 for hypothetical perfect center (reality is probably +/-50)
 //returns negative value for left / positive value for right
 int rc_get_leftright() {
-  unsigned long pulse_length = IBus.readChannel(0);
+  int pulse_length = IBus.readChannel(0);
 
   return pulse_length - CENTER_LEFTRIGHT_PULSE_LENGTH;
 }

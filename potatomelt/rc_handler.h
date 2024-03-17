@@ -10,7 +10,9 @@ void init_rc();
 
 bool rc_signal_is_healthy();           //return true if RC signal looks good
 
-int rc_get_throttle_percent();        //returns 0-100 value indicating throttle level
+int rc_get_throttle_perk();        //returns 0-100 value indicating throttle level
+
+int rc_get_trans();
 
 rc_forback rc_get_forback();          //returns RC_FORBACK_FORWARD, RC_FORBACK_NEUTRAL or RC_FORBACK_BACKWARD depending on stick position
 int rc_get_leftright();               //returns offset in microseconds from center value (not converted to percentage)
@@ -31,14 +33,14 @@ bool rc_get_is_lr_in_normal_deadzone();
 //(does not need to be perfect)
 #define NOMINAL_PULSE_RANGE (MAX_RC_PULSE_LENGTH - MIN_RC_PULSE_LENGTH)
 
-#define IDLE_THROTTLE_PULSE_LENGTH 1250           //pulses below this value are considered 0% throttle
-#define FULL_THROTTLE_PULSE_LENGTH 1850           //pulses above this value are considered 100%
+#define IDLE_THROTTLE_PULSE_LENGTH 988           //pulses below this value are considered 0% throttle
+#define FULL_THROTTLE_PULSE_LENGTH 2012           //pulses above this value are considered 100%
 #define CENTER_LEFTRIGHT_PULSE_LENGTH 1500        //center value for left / right
 #define CENTER_FORBACK_PULSE_LENGTH 1500          //center value for for / back
 
 #define FORBACK_MIN_THRESH_PULSE_LENGTH 100       //pulse length must differ by this much from CENTER_FORBACK_PULSE_LENGTH to be considered going forward or back
 
-#define LR_CONFIG_MODE_DEADZONE_WIDTH 100         //deadzone for LR when in config mode (in US) - prevents unintended tracking adjustments
+#define LR_CONFIG_MODE_DEADZONE_WIDTH 1024         //deadzone for LR when in config mode (in US) - prevents unintended tracking adjustments
 #define LR_NORMAL_DEADZONE_WIDTH 25               //deadzone for normal drive - can help with unintentional drift when moving forward / back
 
 #define MAX_MS_BETWEEN_RC_UPDATES 900             //if we don't get a valid RC update on the throttle at least this often - spin down

@@ -20,7 +20,7 @@
 
 LIS331 xl;
 
-void init_accel() {
+void init_accel() { 
 
   Wire.begin();
   

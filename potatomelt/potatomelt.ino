@@ -24,7 +24,7 @@ void service_watchdog() {
 
 //loops until a good RC signal is detected and throttle is zero (assures safe start)
 static void wait_for_rc_good_and_zero_throttle() {
-    while (rc_signal_is_healthy() == false || rc_get_throttle_percent() > 0) {
+    while (rc_signal_is_healthy() == false || rc_get_throttle_perk() > 0) {
       
       //"slow on/off" for LED while waiting for signal
       heading_led_on(0); delay(250);
@@ -81,7 +81,7 @@ static void echo_diagnostics() {
 
   Serial.print("Raw Accel G: "); Serial.print(get_accel_force_g());
   Serial.print("  RC Health: "); Serial.print(rc_signal_is_healthy());
-  Serial.print("  RC Throttle: "); Serial.print(rc_get_throttle_percent());
+  Serial.print("  RC Throttle: "); Serial.print(rc_get_throttle_perk());
   Serial.print("  RC L/R: "); Serial.print(rc_get_leftright());
   Serial.print("  RC F/B: "); Serial.print(rc_get_forback());
 
@@ -104,10 +104,10 @@ static void display_rpm_if_requested() {
   if (rc_get_forback() == RC_FORBACK_FORWARD) {
     delay(750);
      //verify throttle at zero to prevent accidental entry into RPM flash
-    if (rc_get_forback() == RC_FORBACK_FORWARD && rc_get_throttle_percent() == 0) {
+    if (rc_get_forback() == RC_FORBACK_FORWARD && rc_get_throttle_perk() == 0) {
        
       //throttle up cancels RPM count
-      for (int x = 0; x < get_max_rpm() && rc_get_throttle_percent() == 0; x = x + 100) {
+      for (int x = 0; x < get_max_rpm() && rc_get_throttle_perk() == 0; x = x + 100) {
         service_watchdog();   //flashing out RPM can take a while - need to assure watchdog doesn't trigger
         delay(600); heading_led_on(0);
         delay(20); heading_led_off();
@@ -175,7 +175,7 @@ void loop() {
   }
 
   //if RC is good - and throtte is above 0 - spin a single rotation
-  if (rc_get_throttle_percent() > 0) {
+  if (rc_get_throttle_perk() > 0) {
     //this is where all the motor control happens!  (see spin_control.cpp)
     spin_one_rotation();  
   } else {    

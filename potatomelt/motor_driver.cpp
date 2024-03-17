@@ -11,39 +11,10 @@
 DShot motor1 = DShot(DShot::Mode::DSHOT600);
 DShot motor2 = DShot(DShot::Mode::DSHOT600);
 
-void motor_on(float throttle_percent, int motor_pin) {
-
-  if (THROTTLE_TYPE == BINARY_THROTTLE) {
-    digitalWrite(motor_pin, HIGH);
-  }
-
-  if (THROTTLE_TYPE == FIXED_PWM_THROTTLE) {
-    if (motor_pin = MOTOR_PIN1) {
-      motor1.setThrottle(DSHOT_MOTOR_ON);
-    } else {
-      motor2.setThrottle(DSHOT_MOTOR_ON);
-    }
-  }
-
-//If DYNAMIC_PWM_THROTTLE - PWM is scaled between PWM_MOTOR_COAST and PWM_MOTOR_ON
-//Applies over range defined by DYNAMIC_PWM_THROTTLE_PERCENT_MAX - maxed at PWM_MOTOR_ON above this
-  if (THROTTLE_TYPE == DYNAMIC_PWM_THROTTLE) {
-    int throttle_pwm = DSHOT_MOTOR_COAST + ((throttle_percent / DYNAMIC_PWM_THROTTLE_PERCENT_MAX) * (DSHOT_MOTOR_ON - DSHOT_MOTOR_COAST));
-    if (throttle_pwm > DSHOT_MOTOR_ON) throttle_pwm = DSHOT_MOTOR_ON;
-    if (motor_pin = MOTOR_PIN1) {
-      motor1.setThrottle(throttle_pwm);
-    } else {
-      motor2.setThrottle(throttle_pwm);
-    }
-  }
-}
-
-void motor_1_on(float throttle_percent) {
-  motor_on(throttle_percent, MOTOR_PIN1);
-}
-
-void motor_2_on(float throttle_percent) {
-  motor_on(throttle_percent, MOTOR_PIN2);
+void motors_on(int motor_one_throttle_perk, int motor_two_throttle_perk)
+{
+  motor1.setThrottle(motor_one_throttle_perk);
+  motor2.setThrottle(motor_two_throttle_perk);
 }
 
 void motor_coast(int motor_pin) {
@@ -89,8 +60,8 @@ void motor_2_off() {
 }
 
 void motors_off() {
-  motor_1_off();
-  motor_2_off();
+  motor1.setThrottle(0);
+  motor2.setThrottle(0);
 }
 
 void init_motors() {
