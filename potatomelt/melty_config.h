@@ -49,38 +49,6 @@
 
 #define BATTERY_ADC_PIN A0                        //Pin for battery monitor (if enabled)
 
-
-//----------THROTTLE CONFIGURATION----------
-//THROTTLE_TYPE / High-speed PWM motor driver support:
-//Setting THROTTLE_TYPE to FIXED_PWM_THROTTLE or DYNAMIC_PWM_THROTTLE pulses 490Hz PWM signal on motor drive pins at specified duty cycle (0-255)
-//Can be used for 2 possible purposes:
-//  1. Used as control signal for a brushless ESC supporting high speed (490Hz) PWM (tested with Hobbypower 30A / "Simonk" firmware)
-//          Assumes Arduino PWM output is 490Hz (such as Arduino Micro pins 9 and 10) - should be expected NOT to work with non-AVR Arduino's without changes
-//  2. 490hz signal maybe fed into a MOSFET or other on / off motor driver to control drive strength (relatively low frequency)
-//Thanks to Richard Wong for his research in implementing brushless ESC support
-
-enum throttle_modes {
-  BINARY_THROTTLE,      //Motors pins are fully on/off - throttle controlled by portion of each rotation motor is on (no PWM)
-
-  FIXED_PWM_THROTTLE,   //Motors pins are PWM at PWM_MOTOR_ON, PWM_MOTOR_COAST or PWM_MOTOR_OFF
-                        //throttle controlled by portion of each rotation motor is on
-
-  DYNAMIC_PWM_THROTTLE  //Scales PWM throttling between PWM_MOTOR_COAST and PWM_MOTOR_ON
-                        //Range of throttle scaled over is determined by DYNAMIC_PWM_THROTTLE_PERCENT_MAX
-                        //PWM is locked at PWM_MOTOR_ON for throttle positions higher than DYNAMIC_PWM_THROTTLE_PERCENT_MAX
-                        //Robot speed is additionally controlled by portion of each rotation motor is on (unless DYNAMIC_PWM_MOTOR_ON_PORTION is defined)
-                        //This mode reduces current levels during spin up at part throttle
-};
-
-#define THROTTLE_TYPE DYNAMIC_PWM_THROTTLE    //<---Throttle type set here!
-
-#define DYNAMIC_PWM_MOTOR_ON_PORTION 0.5f       //if defined (and DYNAMIC_PWM_THROTTLE is set) portion of each rotation motor is on is fixed at this value
-                                                //About 0.5f for best translation (higher for increased RPM)
-
-#define DYNAMIC_PWM_THROTTLE_PERCENT_MAX 1.0f   //Range of RC throttle DYNAMIC_PWM_THROTTLE is applied to 
-                                                //0.5f for 0-50% throttle (full PWM_MOTOR_ON used for >50% throttle)
-                                                //1.0f for 0-100% throttle
-
 //----------PWM MOTOR SETTINGS---------- 
 //(only used if a PWM throttle mode is chosen)
 //PWM values are 0-255 duty cycle

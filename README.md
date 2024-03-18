@@ -2,7 +2,7 @@
 
 PotatoMelt is a drive controller for Meltybrain (translational drift) robots, running on the arduino (atmega32) platform.
 
-It's also my first Arduino project, so, brace yourself.
+It's also my first Arduino project, so, brace yourself. This library is not guaranteed fit for any purpose, and may cause your robot to just explode instead of doing anything useful. You Have Been Warned.
 
 This is based incredibly heavily on the fantastic OpenMelt2: https://github.com/nothinglabs/openmelt2
 

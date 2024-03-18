@@ -1,6 +1,8 @@
 #include <SparkFun_LIS331.h>
 #include <Arduino.h>
 
+#define ENABLE_WATCHDOG
+
 //See melty_config.h for configuration parameters
 
 #include "rc_handler.h"
@@ -83,7 +85,7 @@ static void echo_diagnostics() {
   Serial.print("  RC Health: "); Serial.print(rc_signal_is_healthy());
   Serial.print("  RC Throttle: "); Serial.print(rc_get_throttle_perk());
   Serial.print("  RC L/R: "); Serial.print(rc_get_leftright());
-  Serial.print("  RC F/B: "); Serial.print(rc_get_forback());
+  Serial.print("  RC F/B: "); Serial.print(rc_get_trans());
 
 #ifdef BATTERY_ALERT_ENABLED
   Serial.print("  Battery Voltage: "); Serial.print(get_battery_voltage());
