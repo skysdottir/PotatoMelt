@@ -101,21 +101,21 @@ static float get_rotation_interval_ms(int steering_disabled) {
 
 
 //performs changes to melty parameters when in config mode
-static struct melty_parameters_t handle_config_mode(struct melty_parameters_t melty_parameters) {
+static struct melty_parameters_t handle_config_mode(melty_parameters_t *melty_parameters) {
 
-  melty_parameters.translate_forback = rc_get_forback();
+  melty_parameters->translate_forback = rc_get_forback();
   //if forback forward - normal drive (for driver testing - no adjustment of melty parameters)
 
   //if forback neutral - then do radius adjustment
-  if (melty_parameters.translate_forback == RC_FORBACK_NEUTRAL) {
+  if (melty_parameters->translate_forback == RC_FORBACK_NEUTRAL) {
 
     //radius adjustment overrides steering
-    melty_parameters.steering_disabled = 1;
+    melty_parameters->steering_disabled = 1;
 
     //only adjust if stick is outside deadzone    
     if (rc_get_is_lr_in_config_deadzone() == false) {
       //show that we are changing config
-      melty_parameters.led_shimmer = 1;
+      melty_parameters->led_shimmer = 1;
 
       float adjustment_factor = (accel_mount_radius_cm * (float)(rc_get_leftright() / (float)NOMINAL_PULSE_RANGE));
       adjustment_factor = adjustment_factor / LEFT_RIGHT_CONFIG_RADIUS_ADJUST_DIVISOR;
@@ -126,19 +126,19 @@ static struct melty_parameters_t handle_config_mode(struct melty_parameters_t me
   }
   
   //if forback backward - do LED heading adjustment (don't translate)
-  if (melty_parameters.translate_forback == RC_FORBACK_BACKWARD) {
+  if (melty_parameters->translate_forback == RC_FORBACK_BACKWARD) {
     //LED heading offset adjustment overrides steering
-    melty_parameters.steering_disabled = 1;
+    melty_parameters->steering_disabled = 1;
     
     //only adjust if stick is outside deadzone  
     if (rc_get_is_lr_in_config_deadzone() == false) {
 
       //disable translation if adjusting heading
-      melty_parameters.throttle_high_perk = melty_parameters.throttle_perk;
-      melty_parameters.throttle_low_perk = melty_parameters.throttle_perk;
+      melty_parameters->throttle_high_perk = melty_parameters->throttle_perk;
+      melty_parameters->throttle_low_perk = melty_parameters->throttle_perk;
 
       //show that we are changing config
-      melty_parameters.led_shimmer = 1;
+      melty_parameters->led_shimmer = 1;
 
       float adjustment_factor =  (float)(rc_get_leftright() / (float)NOMINAL_PULSE_RANGE);
       adjustment_factor = adjustment_factor / LEFT_RIGHT_CONFIG_LED_ADJUST_DIVISOR;
@@ -148,68 +148,64 @@ static struct melty_parameters_t handle_config_mode(struct melty_parameters_t me
       if (led_offset_percent < 0) led_offset_percent = 99;
 
     }
-  }    
-  return melty_parameters;  
+  }
 }
 
 //Calculates all parameters need for a single rotation (motor timing, LED timing, etc.)
 //This entire section takes ~1300us on an Atmega32u4 (acceptable - fast enough to not have major impact on tracking accuracy)
-static struct melty_parameters_t get_melty_parameters(void) {
-
-  melty_parameters_t melty_parameters = {};
+static void get_melty_parameters(melty_parameters_t *melty_parameters) {
 
   float led_offset_portion = led_offset_percent / 100.0f;
 
-  melty_parameters.throttle_perk = rc_get_throttle_perk();
+  melty_parameters->throttle_perk = rc_get_throttle_perk();
 
-  float led_on_portion = melty_parameters.throttle_perk / 1024;  //LED width changes with throttle percent
+  float led_on_portion = melty_parameters->throttle_perk / 1024;  //LED width changes with throttle percent
   if (led_on_portion < 0.10f) led_on_portion = 0.10f;
   if (led_on_portion > 0.90f) led_on_portion = 0.90f;
 
   //if we are in config mode - handle it (and disable steering if needed)
   if (get_config_mode() == true) {
-    melty_parameters = handle_config_mode(melty_parameters);
+    handle_config_mode(melty_parameters);
   }
 
-  melty_parameters.rotation_interval_us = get_rotation_interval_ms(melty_parameters.steering_disabled) * 1000;
+  melty_parameters->rotation_interval_us = get_rotation_interval_ms(melty_parameters->steering_disabled) * 1000;
 
   //if we are too slow - don't even try to track heading
-  if (melty_parameters.rotation_interval_us > MAX_TRACKING_ROTATION_INTERVAL_US) {
-    melty_parameters.rotation_interval_us = MAX_TRACKING_ROTATION_INTERVAL_US;
+  if (melty_parameters->rotation_interval_us > MAX_TRACKING_ROTATION_INTERVAL_US) {
+    melty_parameters->rotation_interval_us = MAX_TRACKING_ROTATION_INTERVAL_US;
   }
 
-  unsigned long led_on_us = led_on_portion * melty_parameters.rotation_interval_us;
-  unsigned long led_offset_us = led_offset_portion * melty_parameters.rotation_interval_us;
+  unsigned long led_on_us = led_on_portion * melty_parameters->rotation_interval_us;
+  unsigned long led_offset_us = led_offset_portion * melty_parameters->rotation_interval_us;
 
   //starts LED on time at point in rotation so it's "centered" on led offset
-  melty_parameters.led_start = led_offset_us - (led_on_us / 2));
-  if (melty_parameters.led_start < 0) {
-    melty_parameters.led_start += melty_parameters.rotation_interval_us;
+  melty_parameters->led_start = led_offset_us - (led_on_us / 2);
+  if (melty_parameters->led_start < 0) {
+    melty_parameters->led_start += melty_parameters->rotation_interval_us;
   }
   
-  melty_parameters.led_stop = melty_parameters.led_start + led_on_us;
-  if (melty_parameters.led_stop > melty_parameters.rotation_interval_us)
+  melty_parameters->led_stop = melty_parameters->led_start + led_on_us;
+  if (melty_parameters->led_stop > melty_parameters->rotation_interval_us)
   {
-    melty_parameters.led_stop -= melty_parameters.rotation_interval_us;
+    melty_parameters->led_stop -= melty_parameters->rotation_interval_us;
   }
 
   // phase transition timing: Currently, only forwards/backwards
-  melty_parameters.motor_start_phase_1 = 0;
-  melty_parameters.motor_start_phase_2 = melty_parameters.rotation_interval_us / 2;
+  melty_parameters->motor_start_phase_1 = 0;
+  melty_parameters->motor_start_phase_2 = melty_parameters->rotation_interval_us / 2;
 
   int translate_disp = rc_get_trans();
   // translation control!
 
-    melty_parameters.throttle_high_perk = min(melty_parameters.throttle_perk + (translate_disp * melty_parameters.throttle_perk / 256), 1023);
-    melty_parameters.throttle_low_perk = max(melty_parameters.throttle_perk - (translate_disp * melty_parameters.throttle_perk / 256 ), 0);
+    melty_parameters->throttle_high_perk = min(melty_parameters->throttle_perk + (translate_disp * melty_parameters->throttle_perk / 256), 1023);
+    melty_parameters->throttle_low_perk = max(melty_parameters->throttle_perk - (translate_disp * melty_parameters->throttle_perk / 256 ), 0);
 
 
   //if the battery voltage is low - shimmer the LED to let user know
 #ifdef BATTERY_ALERT_ENABLED
-  if (battery_voltage_low() == true) melty_parameters.led_shimmer = 1;
+  if (battery_voltage_low() == true) melty_parameters->led_shimmer = 1;
 #endif
 
-  return melty_parameters;
 }
 
 //turns on heading LED at appropriate timing
@@ -234,7 +230,8 @@ static void update_heading_led(struct melty_parameters_t melty_parameters, unsig
 void spin_one_rotation(void) {
 
   //-initial- assignment of melty parameters
-  static struct melty_parameters_t melty_parameters = get_melty_parameters();
+  static struct melty_parameters_t melty_parameters;
+  get_melty_parameters(&melty_parameters);
 
   //capture initial time stamp before rotation start (time performing accel sampling / floating point math is included)
   unsigned long start_time = micros();
@@ -255,7 +252,7 @@ void spin_one_rotation(void) {
 
     //update melty parameters if we haven't / update time has elapsed
     if (melty_parameters_updated_this_rotation == false && time_spent_this_rotation_us > melty_parameter_update_time_offset_us) { 
-      melty_parameters = get_melty_parameters();
+      get_melty_parameters(&melty_parameters);
       melty_parameters_updated_this_rotation = true;
     }
 
