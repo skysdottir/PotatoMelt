@@ -8,11 +8,20 @@
 
 IBusBM IBus;
 
-//verifies that we are still receiving full power on channel 8 (switched on receiver).
-//failsafe behavior on the receiver is to cut to 0 pulses, so this will drop.
-//Also, throwing the configured switch will drop.
+unsigned long control_checksum;
+unsigned long last_changed_at;
+
 bool rc_signal_is_healthy() {
-  return IBus.readChannel(7) > 2000;
+  unsigned long new_checksum = compute_checksum();
+  unsigned long now = millis();
+  if (new_checksum != control_checksum) {
+    last_changed_at = now;
+    control_checksum = new_checksum;
+    return true;
+  }
+  else {
+    return (now - last_changed_at < CONTROL_MOTION_TIMEOUT_MS);
+  }
 }
 
 //returns at integer from 0 to 1024 based on throttle position
@@ -68,4 +77,12 @@ int rc_get_leftright() {
 //attach interrupts to rc pins
 void init_rc(void) {
   IBus.begin(Serial1);
+  control_checksum = compute_checksum();
+  last_changed_at = millis();
+}
+
+// There's no way you're holding completely, perfectly still on the sticks.
+// If the checksum hasn't changed at all in too long, the connection has gone stale.
+unsigned long compute_checksum() {
+  return IBus.readChannel(0)*64+IBus.readChannel(1)*16+IBus.readChannel(2)*4+IBus.readChannel(3);
 }

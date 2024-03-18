@@ -9,6 +9,7 @@ typedef enum {
 void init_rc();
 
 bool rc_signal_is_healthy();           //return true if RC signal looks good
+unsigned long compute_checksum();                // Compute a checksum for the current position of the sticks, to use in the previous
 
 int rc_get_throttle_perk();        //returns 0-100 value indicating throttle level
 
