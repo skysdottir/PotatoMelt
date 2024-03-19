@@ -41,5 +41,7 @@ void init_accel() {
 float get_accel_force_g() {
   int16_t x, y, z;
   xl.readAxes(x, y, z);
-  return xl.convertToG(ACCEL_MAX_SCALE,x);
+  float g = xl.convertToG(ACCEL_MAX_SCALE,x);
+  g += (g * ACCEL_NONLINEAR_CORRECTION_FACTOR)*(g*ACCEL_NONLINEAR_CORRECTION_FACTOR);
+  return g;
 }
