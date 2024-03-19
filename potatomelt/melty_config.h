@@ -30,6 +30,8 @@
 
 #define MIN_TRANSLATION_RPM 400                   //full power spin in below this number (increasing can reduce spin-up time)
 
+#define ROTATION_IS_CLOCKWISE true                //what it says on the tin: which direction are we turning?
+
 
 //----------PIN MAPPINGS----------
 // On an Atmega32, pins 0 and 1 (rx and tx) map to Serial1

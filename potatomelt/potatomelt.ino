@@ -84,8 +84,9 @@ static void echo_diagnostics() {
   Serial.print("Raw Accel G: "); Serial.print(get_accel_force_g());
   Serial.print("  RC Health: "); Serial.print(rc_signal_is_healthy());
   Serial.print("  RC Throttle: "); Serial.print(rc_get_throttle_perk());
-  Serial.print("  RC L/R: "); Serial.print(rc_get_leftright());
-  Serial.print("  RC F/B: "); Serial.print(rc_get_trans());
+  Serial.print("  RC Turn: "); Serial.print(rc_get_turn_leftright());
+  Serial.print("  RC L/R: "); Serial.print(rc_get_trans_leftright());
+  Serial.print("  RC F/B: "); Serial.print(rc_get_trans_forback());
 
 #ifdef BATTERY_ALERT_ENABLED
   Serial.print("  Battery Voltage: "); Serial.print(get_battery_voltage());

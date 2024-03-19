@@ -26,10 +26,11 @@ typedef struct melty_parameters_t {
   int throttle_high_perk;             // for translation, the approaching wheel power
   int throttle_low_perk;              // for translation, the receeding wheel power
 	unsigned long rotation_interval_us; //time for 1 rotation of robot
+  unsigned long phase_length_us;      // time for one phase of the rotation, 1/2 of rotation_interval_us
+  unsigned long phase_offset_us;      // time from 0 to the first phase transition
+  bool start_in_phase_one;            // do we start with wheel one advancing or retreating?
 	unsigned long led_start;            //offset for beginning of LED beacon
 	unsigned long led_stop;             //offset for end of LED beacon
-	unsigned long motor_start_phase_1;  //time offset for when motor 1 begins translating forwards
-	unsigned long motor_start_phase_2;   //time offset for when motor 2 begins translating forwards
   int steering_disabled;              //Prevents adjustment of left / right heading adjustment (used for configuration mode)
   int led_shimmer;                    //LED is shimmering to indicate something to the user
 };

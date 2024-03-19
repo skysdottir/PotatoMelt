@@ -13,10 +13,13 @@ unsigned long compute_checksum();                // Compute a checksum for the c
 
 int rc_get_throttle_perk();        //returns 0-100 value indicating throttle level
 
-int rc_get_trans();
+int rc_get_trans_forback();
+int rc_get_trans_leftright();
+
+int rc_get_trans_magnitude();     // returns how far from center the control stick is
 
 rc_forback rc_get_forback();          //returns RC_FORBACK_FORWARD, RC_FORBACK_NEUTRAL or RC_FORBACK_BACKWARD depending on stick position
-int rc_get_leftright();               //returns offset in microseconds from center value (not converted to percentage)
+int rc_get_turn_leftright();          //returns offset in microseconds from center value (not converted to percentage)
 
 //these functions return true if L/R stick movement is below defined thresholds
 bool rc_get_is_lr_in_config_deadzone();  

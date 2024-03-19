@@ -79,7 +79,7 @@ static float get_rotation_interval_ms(int steering_disabled) {
 
   //don't adjust steering if disabled by config mode - or we are in RC deadzone
   if (steering_disabled == 0 && rc_get_is_lr_in_normal_deadzone() == false) {
-    radius_adjustment_factor = (float)(rc_get_leftright() / (float)NOMINAL_PULSE_RANGE) / LEFT_RIGHT_HEADING_CONTROL_DIVISOR;
+    radius_adjustment_factor = (float)(rc_get_turn_leftright() / (float)NOMINAL_PULSE_RANGE) / LEFT_RIGHT_HEADING_CONTROL_DIVISOR;
   }
   
   float effective_radius_in_cm = accel_mount_radius_cm;
@@ -117,7 +117,7 @@ static struct melty_parameters_t handle_config_mode(melty_parameters_t *melty_pa
       //show that we are changing config
       melty_parameters->led_shimmer = 1;
 
-      float adjustment_factor = (accel_mount_radius_cm * (float)(rc_get_leftright() / (float)NOMINAL_PULSE_RANGE));
+      float adjustment_factor = (accel_mount_radius_cm * (float)(rc_get_turn_leftright() / (float)NOMINAL_PULSE_RANGE));
       adjustment_factor = adjustment_factor / LEFT_RIGHT_CONFIG_RADIUS_ADJUST_DIVISOR;
       accel_mount_radius_cm = accel_mount_radius_cm + adjustment_factor;
 
@@ -140,7 +140,7 @@ static struct melty_parameters_t handle_config_mode(melty_parameters_t *melty_pa
       //show that we are changing config
       melty_parameters->led_shimmer = 1;
 
-      float adjustment_factor =  (float)(rc_get_leftright() / (float)NOMINAL_PULSE_RANGE);
+      float adjustment_factor =  (float)(rc_get_turn_leftright() / (float)NOMINAL_PULSE_RANGE);
       adjustment_factor = adjustment_factor / LEFT_RIGHT_CONFIG_LED_ADJUST_DIVISOR;
       led_offset_percent = led_offset_percent + adjustment_factor;
 
@@ -190,16 +190,58 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
     melty_parameters->led_stop -= melty_parameters->rotation_interval_us;
   }
 
-  // phase transition timing: Currently, only forwards/backwards
-  melty_parameters->motor_start_phase_1 = 0;
-  melty_parameters->motor_start_phase_2 = melty_parameters->rotation_interval_us / 2;
+  // phase transition timing: Brace yourself
+  // One phase is always half of the rotation interval
+  melty_parameters->phase_length_us = melty_parameters->rotation_interval_us / 2;
 
-  int translate_disp = rc_get_trans();
-  // translation control!
+  // And now we need to talk about the difference between "forwards" as in "0", the start of each rotation and straight up on the control stick,
+  // And "forwards" as in "heading", the direction we want the robot to travel in.
+  // We're in motor phase 1 when wheel 1 is advancing towards the heading- it's when we run the throttle at higher power
+  // And when wheel 2 is retreating from the heading, we're in phase 2, and run the throttle at lower power
+  // So. Let's work out what the heading is.
+  // We're going to represent this a little interestingly, for the sake of the hot loop later: Rather than record the heading angle as 0-360,
+  // We're going to record what phase we're in at 0, and when, from 0 to half a rotation interval of microseconds, we will enter the next phase.
+  // So, let's work out what that angle is first
+  int fwds = rc_get_trans_forback();
+  int lr = rc_get_trans_leftright();
 
-    melty_parameters->throttle_high_perk = min(melty_parameters->throttle_perk + (translate_disp * melty_parameters->throttle_perk / 256), 1023);
-    melty_parameters->throttle_low_perk = max(melty_parameters->throttle_perk - (translate_disp * melty_parameters->throttle_perk / 256 ), 0);
+  // if lr is 0 (so, the stick is straight forwards or straight back), the phase transition happens at exactly 0.
+  double dir_rads = 0;
 
+  // Otherwise, it's trig time
+  if (lr != 0) {
+    // This will give us dir_rads between -pi/2 and pi/2.
+    dir_rads = atan((double) fwds/lr);
+  }
+
+  // convert to degrees
+  double dir_degs = dir_rads * 180/PI;
+
+  // and, if it's negative, add 180 degrees to find the first positive phase transition's angular offset
+  if (dir_degs < 0) {
+    dir_degs += 180;
+  }
+
+  // Which we can convert to micros easily:
+  melty_parameters->phase_offset_us = dir_degs * melty_parameters->phase_length_us / 180;
+ 
+  // That's great, but now we need to calculate what phase we're in at 0.
+  // You might think there are two options here, but there's actually four!
+  // If we're rotating clockwise, and the heading is to the right of 0, we start in phase 1, because wheel 1 is advancing as we pass 0.
+  // If we're rotating clockwise and the heading is to the left of 0, we start in phase 2.
+  // If we're rotating counter-clockwise, and the heading is to the right of 0, we're starting in phase 2 - because at 0, wheel 1 is retreating towards the phase transition opposite the heading
+  // And if we're rotating counter-clockwise and the heading is to the left of 0, we start in phase 1
+  // drawing the truth table for this crazy boolean is left as an exercise
+
+  melty_parameters->start_in_phase_one = ((lr > 0) == ROTATION_IS_CLOCKWISE);
+
+  // compared to all that, how much the throttle settings vary for each phase is easy to calculate.
+  // 256 is a magic number - if we used 512, at exactly half throttle and stick hard over, the advancing wheel would be running at 1023 and the withdrawing wheel at 0
+  // Which would be super neat and all, but it just doesn't feel responsive enough
+  // So we doubled the influence that stick angle has
+  int translate_disp = max(abs(fwds), abs(lr));
+  melty_parameters->throttle_high_perk = min(melty_parameters->throttle_perk + (translate_disp * melty_parameters->throttle_perk / 256), 1023);
+  melty_parameters->throttle_low_perk = max(melty_parameters->throttle_perk - (translate_disp * melty_parameters->throttle_perk / 256 ), 0);
 
   //if the battery voltage is low - shimmer the LED to let user know
 #ifdef BATTERY_ALERT_ENABLED
@@ -257,11 +299,22 @@ void spin_one_rotation(void) {
     }
 
     //translate
-    if (time_spent_this_rotation_us >= melty_parameters.motor_start_phase_1 && time_spent_this_rotation_us <= melty_parameters.motor_start_phase_2) {
-    motors_on(melty_parameters.throttle_high_perk, melty_parameters.throttle_low_perk);
-  } else {
-    motors_on(melty_parameters.throttle_low_perk, melty_parameters.throttle_high_perk);
-  }
+    // So. What phase are we in?
+    // This can be answered by determining how many phase transitions have passed since we started this rotation
+    // We're adding 1 because the complicated math starts at -1, for annoying integer reasons.
+    int phase_transitions_passed = 1 + (time_spent_this_rotation_us - melty_parameters.phase_offset_us) / melty_parameters.phase_length_us;
+
+    // Now, if we've passed one phase transition, we're in the opposite of the phase we passed at time 0
+    // If we've passed 0 or 2 phase transitions, we're in the same phase as time 0
+    // And we know which phase time 0 is in, thanks to earlier math!
+    // once again, we're in an xor situation- we're in phase one either if time 0 is in phase one and we've passed 0 or 2 phase transitions, or if time 0 is in phase 2 and we've passed one phase transition.
+    if (melty_parameters.start_in_phase_one == (phase_transitions_passed != 1)) {
+      // We're in phase one! Spin motor one faster
+      motors_on(melty_parameters.throttle_high_perk, melty_parameters.throttle_low_perk);
+    } else {
+      // We're in phase two! Spin motor two faster
+      motors_on(melty_parameters.throttle_low_perk, melty_parameters.throttle_high_perk);
+    }
    
     //displays heading LED at correct location
     update_heading_led(melty_parameters, time_spent_this_rotation_us);
