@@ -31,6 +31,6 @@ typedef struct melty_parameters_t {
   bool start_in_phase_one;            // do we start with wheel one advancing or retreating?
 	unsigned long led_start;            //offset for beginning of LED beacon
 	unsigned long led_stop;             //offset for end of LED beacon
-  int steering_disabled;              //Prevents adjustment of left / right heading adjustment (used for configuration mode)
+  int movement_enabled;              //Prevents adjustment of left / right heading adjustment (used for configuration mode)
   int led_shimmer;                    //LED is shimmering to indicate something to the user
 };
