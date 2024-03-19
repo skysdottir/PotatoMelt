@@ -73,12 +73,12 @@ int get_max_rpm() {
 //calculates time for this rotation of robot
 //robot is steered by increasing / decreasing rotation by factor relative to RC left / right position
 //ie - reducing rotation time estimate below actual results in shift of heading opposite the direction of rotation
-static float get_rotation_interval_ms(int steering_disabled) {
+static float get_rotation_interval_ms(int steering_enabled) {
   
   float radius_adjustment_factor = 0;
 
   //don't adjust steering if disabled by config mode - or we are in RC deadzone
-  if (steering_disabled == 0 && rc_get_is_lr_in_normal_deadzone() == false) {
+  if (steering_enabled == 1 && rc_get_is_lr_in_normal_deadzone() == false) {
     radius_adjustment_factor = (float)(rc_get_leftright() / (float)NOMINAL_PULSE_RANGE) / LEFT_RIGHT_HEADING_CONTROL_DIVISOR;
   }
   
@@ -110,7 +110,7 @@ static struct melty_parameters_t handle_config_mode(melty_parameters_t *melty_pa
   if (melty_parameters->translate_forback == RC_FORBACK_NEUTRAL) {
 
     //radius adjustment overrides steering
-    melty_parameters->steering_disabled = 1;
+    melty_parameters->movement_enabled = 0;
 
     //only adjust if stick is outside deadzone    
     if (rc_get_is_lr_in_config_deadzone() == false) {
@@ -127,15 +127,11 @@ static struct melty_parameters_t handle_config_mode(melty_parameters_t *melty_pa
   
   //if forback backward - do LED heading adjustment (don't translate)
   if (melty_parameters->translate_forback == RC_FORBACK_BACKWARD) {
-    //LED heading offset adjustment overrides steering
-    melty_parameters->steering_disabled = 1;
+    //LED heading offset adjustment disables movement
+    melty_parameters->movement_enabled = 0;
     
     //only adjust if stick is outside deadzone  
     if (rc_get_is_lr_in_config_deadzone() == false) {
-
-      //disable translation if adjusting heading
-      melty_parameters->throttle_high_perk = melty_parameters->throttle_perk;
-      melty_parameters->throttle_low_perk = melty_parameters->throttle_perk;
 
       //show that we are changing config
       melty_parameters->led_shimmer = 1;
@@ -154,6 +150,9 @@ static struct melty_parameters_t handle_config_mode(melty_parameters_t *melty_pa
 //Calculates all parameters need for a single rotation (motor timing, LED timing, etc.)
 //This entire section takes ~1300us on an Atmega32u4 (acceptable - fast enough to not have major impact on tracking accuracy)
 static void get_melty_parameters(melty_parameters_t *melty_parameters) {
+  // set some of the defaults
+  melty_parameters->led_shimmer = 0;
+  melty_parameters->movement_enabled = 1;
 
   float led_offset_portion = led_offset_percent / 100.0f;
 
@@ -168,7 +167,7 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
     handle_config_mode(melty_parameters);
   }
 
-  melty_parameters->rotation_interval_us = get_rotation_interval_ms(melty_parameters->steering_disabled) * 1000;
+  melty_parameters->rotation_interval_us = get_rotation_interval_ms(melty_parameters->movement_enabled) * 1000;
 
   //if we are too slow - don't even try to track heading
   if (melty_parameters->rotation_interval_us > MAX_TRACKING_ROTATION_INTERVAL_US) {
@@ -197,9 +196,8 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   int translate_disp = rc_get_trans();
   // translation control!
 
-    melty_parameters->throttle_high_perk = min(melty_parameters->throttle_perk + (translate_disp * melty_parameters->throttle_perk / 256), 1023);
-    melty_parameters->throttle_low_perk = max(melty_parameters->throttle_perk - (translate_disp * melty_parameters->throttle_perk / 256 ), 0);
-
+    melty_parameters->throttle_high_perk = min(melty_parameters->throttle_perk + (melty_parameters->movement_enabled * translate_disp * melty_parameters->throttle_perk / 256), 1023);
+    melty_parameters->throttle_low_perk = max(melty_parameters->throttle_perk - (melty_parameters->movement_enabled * translate_disp * melty_parameters->throttle_perk / 256 ), 0);
 
   //if the battery voltage is low - shimmer the LED to let user know
 #ifdef BATTERY_ALERT_ENABLED

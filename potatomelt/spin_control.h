@@ -29,7 +29,7 @@ typedef struct melty_parameters_t {
 	unsigned long led_start;            //offset for beginning of LED beacon
 	unsigned long led_stop;             //offset for end of LED beacon
 	unsigned long motor_start_phase_1;  //time offset for when motor 1 begins translating forwards
-	unsigned long motor_start_phase_2;   //time offset for when motor 2 begins translating forwards
-  int steering_disabled;              //Prevents adjustment of left / right heading adjustment (used for configuration mode)
+	unsigned long motor_start_phase_2;  //time offset for when motor 2 begins translating forwards
+  int movement_enabled;               //Used for config mode- if set to 0, we won't rotate or translate this spin
   int led_shimmer;                    //LED is shimmering to indicate something to the user
 };
