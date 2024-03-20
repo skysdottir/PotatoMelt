@@ -13,7 +13,7 @@
 
 #define ACCEL_MOUNT_RADIUS_MINIMUM_CM 0.2                 //Never allow interactive config to set below this value
 #define LEFT_RIGHT_CONFIG_RADIUS_ADJUST_DIVISOR 50.0f     //How quick accel. radius is adjusted in config mode (larger values = slower)
-#define LEFT_RIGHT_CONFIG_LED_ADJUST_DIVISOR 0.1f         //How quick LED heading is adjusted in config mode (larger values = slower)
+#define LEFT_RIGHT_CONFIG_LED_ADJUST_DIVISOR 0.2f         //How quick LED heading is adjusted in config mode (larger values = slower)
 
 #define MAX_TRANSLATION_ROTATION_INTERVAL_US (1.0f / MIN_TRANSLATION_RPM) * 60 * 1000 * 1000
 #define MAX_TRACKING_ROTATION_INTERVAL_US MAX_TRANSLATION_ROTATION_INTERVAL_US * 2   //don't track heading if we are this slow (also puts upper limit on time spent in melty loop for safety)
@@ -197,7 +197,7 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   // translation control!
 
     melty_parameters->throttle_high_perk = min(melty_parameters->throttle_perk + (melty_parameters->movement_enabled * translate_disp * melty_parameters->throttle_perk / 256), 1023);
-    melty_parameters->throttle_low_perk = max(melty_parameters->throttle_perk - (melty_parameters->movement_enabled * translate_disp * melty_parameters->throttle_perk / 256 ), 0);
+    melty_parameters->throttle_low_perk = max(melty_parameters->throttle_perk - (melty_parameters->movement_enabled * translate_disp * melty_parameters->throttle_perk / 256), 0);
 
   //if the battery voltage is low - shimmer the LED to let user know
 #ifdef BATTERY_ALERT_ENABLED

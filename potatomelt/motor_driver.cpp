@@ -11,8 +11,19 @@
 DShot motor1 = DShot(DShot::Mode::DSHOT600);
 DShot motor2 = DShot(DShot::Mode::DSHOT600);
 
+// So, in DShot, any throttle value < 48 is a motor configuration command.
+// 0, conveniently, is MOTOR_STOP, so 0 is 0.
+// This function is only getting called when we want the robot to spin, so, we'll just treat any incoming command code as a 0
 void motors_on(int motor_one_throttle_perk, int motor_two_throttle_perk)
 {
+  if (motor_one_throttle_perk < 48) {
+    motor_one_throttle_perk = 0;
+  }
+
+  if (motor_two_throttle_perk < 48) {
+    motor_two_throttle_perk = 0;
+  }
+
   motor1.setThrottle(motor_one_throttle_perk);
   motor2.setThrottle(motor_two_throttle_perk);
 }
