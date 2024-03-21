@@ -9,11 +9,11 @@ typedef enum {
 void init_rc();
 
 bool rc_signal_is_healthy();           //return true if RC signal looks good
-unsigned long compute_checksum();                // Compute a checksum for the current position of the sticks, to use in the previous
+unsigned long compute_checksum();      // Compute a checksum for the current position of the sticks, to use in the previous
 
-int rc_get_throttle_perk();        //returns 0-100 value indicating throttle level
+int rc_get_throttle_perk();        //returns 0-1023 value indicating throttle level
 
-int rc_get_trans();
+int rc_get_trans();                //returns 0-512 value indicating displacement of drive stick forback
 
 rc_forback rc_get_forback();          //returns RC_FORBACK_FORWARD, RC_FORBACK_NEUTRAL or RC_FORBACK_BACKWARD depending on stick position
 int rc_get_leftright();               //returns offset in microseconds from center value (not converted to percentage)
@@ -21,6 +21,8 @@ int rc_get_leftright();               //returns offset in microseconds from cent
 //these functions return true if L/R stick movement is below defined thresholds
 bool rc_get_is_lr_in_config_deadzone();  
 bool rc_get_is_lr_in_normal_deadzone();
+
+bool rc_get_tank_mode();
 
 //All pulse lengths in microseconds
 //it's accepted that a TX with fully centered trims may produce values somewhat off these numbers

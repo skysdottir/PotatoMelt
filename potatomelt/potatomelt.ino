@@ -13,6 +13,7 @@
 #include "config_storage.h"
 #include "led_driver.h"
 #include "battery_monitor.h"
+#include "tank_control.h"
 
 #ifdef ENABLE_WATCHDOG
 #include <Adafruit_SleepyDog.h>
@@ -176,8 +177,13 @@ void loop() {
     echo_diagnostics();
   }
 
+  // If we're in tank mode, go drive like a tank!
+  if (rc_get_tank_mode()) {
+    handle_tank_mode();
+  }
+
   //if RC is good - and throtte is above 0 - spin a single rotation
-  if (rc_get_throttle_perk() > 0) {
+  else if (rc_get_throttle_perk() > 0) {
     //this is where all the motor control happens!  (see spin_control.cpp)
     spin_one_rotation();  
   } else {    

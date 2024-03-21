@@ -195,9 +195,13 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
 
   int translate_disp = rc_get_trans();
   // translation control!
+  // Because there's a lot of math here, we're going to compute the actual dshot commands once
+  // So then in the hot loop we can just spam the known codes
+  int throttle_high_perk = min(melty_parameters->throttle_perk + (melty_parameters->movement_enabled * translate_disp * melty_parameters->throttle_perk / 256), 1023);
+  int throttle_low_perk = max(melty_parameters->throttle_perk - (melty_parameters->movement_enabled * translate_disp * melty_parameters->throttle_perk / 256), 0);
 
-    melty_parameters->throttle_high_perk = min(melty_parameters->throttle_perk + (melty_parameters->movement_enabled * translate_disp * melty_parameters->throttle_perk / 256), 1023);
-    melty_parameters->throttle_low_perk = max(melty_parameters->throttle_perk - (melty_parameters->movement_enabled * translate_disp * melty_parameters->throttle_perk / 256), 0);
+  melty_parameters->throttle_high_dshot = perk2dshot(throttle_high_perk);
+  melty_parameters->throttle_low_dshot = perk2dshot(throttle_low_perk);
 
   //if the battery voltage is low - shimmer the LED to let user know
 #ifdef BATTERY_ALERT_ENABLED
@@ -256,9 +260,9 @@ void spin_one_rotation(void) {
 
     //translate
     if (time_spent_this_rotation_us >= melty_parameters.motor_start_phase_1 && time_spent_this_rotation_us <= melty_parameters.motor_start_phase_2) {
-    motors_on(melty_parameters.throttle_high_perk, melty_parameters.throttle_low_perk);
+    motors_on_direct(melty_parameters.throttle_high_dshot, melty_parameters.throttle_low_dshot);
   } else {
-    motors_on(melty_parameters.throttle_low_perk, melty_parameters.throttle_high_perk);
+    motors_on_direct(melty_parameters.throttle_low_dshot, melty_parameters.throttle_high_dshot);
   }
    
     //displays heading LED at correct location

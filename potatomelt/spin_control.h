@@ -23,8 +23,8 @@ void save_melty_config_settings();
 typedef struct melty_parameters_t {
   int translate_forback;              //RC_FORBACK_FORWARD, RC_FORBACK_BACKWARD, RC_FORBACK_NETURAL
   int throttle_perk;                  //stores throttle out of 0-1024
-  int throttle_high_perk;             // for translation, the approaching wheel power
-  int throttle_low_perk;              // for translation, the receeding wheel power
+  int throttle_high_dshot;            // for translation, the approaching wheel power, as dshot expects it
+  int throttle_low_dshot;             // for translation, the receeding wheel power, as dshot expects it
 	unsigned long rotation_interval_us; //time for 1 rotation of robot
 	unsigned long led_start;            //offset for beginning of LED beacon
 	unsigned long led_stop;             //offset for end of LED beacon

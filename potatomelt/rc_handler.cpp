@@ -74,6 +74,11 @@ int rc_get_leftright() {
   return pulse_length - CENTER_LEFTRIGHT_PULSE_LENGTH;
 }
 
+// returns true if we're in tank mode!
+bool rc_get_tank_mode() {
+  return IBus.readChannel(4) > CENTER_FORBACK_PULSE_LENGTH;
+}
+
 //attach interrupts to rc pins
 void init_rc(void) {
   IBus.begin(Serial1);
