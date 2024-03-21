@@ -25,6 +25,29 @@ static float led_offset_percent = DEFAULT_LED_OFFSET_PERCENT;         //stored i
 static unsigned int highest_rpm = 0;
 static bool config_mode = false;   //1 if we are in config mode
 
+//-initial- assignment of melty parameters
+melty_parameters_t melty_parameters;
+
+unsigned long start_time = micros();
+unsigned long time_spent_this_rotation_us = 0;
+
+void init_spin_timer() {
+    // TIMER 3 for interrupt frequency 1000 Hz:
+  cli(); // stop interrupts
+  TCCR3A = 0; // set entire TCCR1A register to 0
+  TCCR3B = 0; // same for TCCR1B
+  TCNT3  = 0; // initialize counter value to 0
+  // set compare match register for 1000 Hz increments
+  OCR3A = 15999; // = 16000000 / (1 * 1000) - 1 (must be <65536)
+  // turn on CTC mode
+  TCCR3B |= (1 << WGM12);
+  // Set CS12, CS11 and CS10 bits for 1 prescaler
+  TCCR3B |= (0 << CS12) | (0 << CS11) | (1 << CS10);
+  // enable timer compare interrupt
+  TIMSK3 |= (1 << OCIE3A);
+  sei(); // allow interrupts
+}
+
 //loads settings from EEPROM
 void load_melty_config_settings() {
 #ifdef ENABLE_EEPROM_STORAGE 
@@ -227,39 +250,40 @@ static void update_heading_led(struct melty_parameters_t melty_parameters, unsig
   }
 }
 
+// Cut the motors!
+void disable_spin() {
+  motors_off();
+  melty_parameters.spin_enabled = false;
+}
+
 //rotates the robot once + handles translational drift
 //(repeat as needed)
 void spin_one_rotation(void) {
-
-  //-initial- assignment of melty parameters
-  static struct melty_parameters_t melty_parameters;
   get_melty_parameters(&melty_parameters);
 
-  //capture initial time stamp before rotation start (time performing accel sampling / floating point math is included)
-  unsigned long start_time = micros();
-  unsigned long time_spent_this_rotation_us = 0;
+  if (!melty_parameters.spin_enabled) {
+    start_time = micros();
+    melty_parameters.spin_enabled = true;
+  }
 
-  //tracking cycle count is needed to alternate cycles for non-translation (overflow is non-issue)
-  static unsigned long cycle_count = 0;
-  cycle_count++;
+  delayMicroseconds(melty_parameters.rotation_interval_us - 2048);
+}
 
-  //the melty parameters are updated either at the beginning of the rotation - or the middle of the rotation (alternating each time)
-  //this is done so that any errors due to the ~1ms accel read / math cycle cancel out any effect on tracking / translational drift
-  int melty_parameter_update_time_offset_us = 0;
-  if (cycle_count % 2 == 1) melty_parameter_update_time_offset_us = melty_parameters.rotation_interval_us / 2;  
-  bool melty_parameters_updated_this_rotation = false;
+ISR(TIMER3_COMPA_vect){
+  // fast bail if we aren't supposed to be spinning.
+  // disable_spin() already stopped the motors, so we can just return
+  if (!melty_parameters.spin_enabled) {
+    return;
+  }
 
-  //loop for one rotation of robot
-  while (time_spent_this_rotation_us < melty_parameters.rotation_interval_us) {
+  time_spent_this_rotation_us = micros() - start_time;
+  if (time_spent_this_rotation_us > melty_parameters.rotation_interval_us) {
+    time_spent_this_rotation_us -= melty_parameters.rotation_interval_us;
+    start_time += melty_parameters.rotation_interval_us;
+  }
 
-    //update melty parameters if we haven't / update time has elapsed
-    if (melty_parameters_updated_this_rotation == false && time_spent_this_rotation_us > melty_parameter_update_time_offset_us) { 
-      get_melty_parameters(&melty_parameters);
-      melty_parameters_updated_this_rotation = true;
-    }
-
-    //translate
-    if (time_spent_this_rotation_us >= melty_parameters.motor_start_phase_1 && time_spent_this_rotation_us <= melty_parameters.motor_start_phase_2) {
+  //translate
+  if (time_spent_this_rotation_us >= melty_parameters.motor_start_phase_1 && time_spent_this_rotation_us <= melty_parameters.motor_start_phase_2) {
     motors_on_direct(melty_parameters.throttle_high_dshot, melty_parameters.throttle_low_dshot);
   } else {
     motors_on_direct(melty_parameters.throttle_low_dshot, melty_parameters.throttle_high_dshot);
@@ -267,9 +291,4 @@ void spin_one_rotation(void) {
    
     //displays heading LED at correct location
     update_heading_led(melty_parameters, time_spent_this_rotation_us);
-
-    time_spent_this_rotation_us = micros() - start_time;
-
-  }
-
 }

@@ -31,7 +31,8 @@ void service_watchdog() {
 //loops until a good RC signal is detected and throttle is zero (assures safe start)
 static void wait_for_rc_good_and_zero_throttle() {
     while (rc_signal_is_healthy() == false || rc_get_throttle_perk() > 0) {
-      
+      disable_spin();
+
       //"slow on/off" for LED while waiting for signal
       heading_led_on(0); delay(250);
       heading_led_off(); delay(250);
@@ -68,11 +69,15 @@ void setup() {
 //if JUST_DO_DIAGNOSTIC_LOOP - then we just loop and display debug info via USB (good for testing)
 #ifdef JUST_DO_DIAGNOSTIC_LOOP
   while (1) {
+    disable_spin();
     service_watchdog();
     echo_diagnostics();
     delay(250);   //delay prevents serial from getting flooded (can cause issues programming)
   }
 #endif
+
+// start the interrupt clock!
+init_spin_timer();
 
 #ifdef VERIFY_RC_THROTTLE_ZERO_AT_BOOT 
   wait_for_rc_good_and_zero_throttle();     //Wait for good RC signal at zero throttle
@@ -143,7 +148,7 @@ static void check_config_mode() {
 //handles the bot when not spinning (with RC good)
 static void handle_bot_idle() {
 
-    motors_off();               //assure motors are off
+    disable_spin();              //assure motors are off
     
     //normal LED "fast flash" - indicates RC signal is good while sitting idle
     heading_led_on(0); delay(30);
@@ -170,7 +175,7 @@ void loop() {
   //if the rc signal isn't good - assure motors off - and "slow flash" LED
   //this will interrupt a spun-up bot if the signal becomes bad
   while (rc_signal_is_healthy() == false) {
-    motors_off();
+    disable_spin();
     
     heading_led_on(0); delay(30);
     heading_led_off(); delay(600);
@@ -183,6 +188,7 @@ void loop() {
   #ifdef ENABLE_TANK_MODE
   // If we're in tank mode, go drive like a tank!
   if (rc_get_tank_mode()) {
+    disable_spin();
     handle_tank_mode();
     return;
   }
