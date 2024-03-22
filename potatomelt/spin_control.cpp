@@ -28,17 +28,21 @@ static bool config_mode = false;   //1 if we are in config mode
 //-initial- assignment of melty parameters
 melty_parameters_t melty_parameters;
 
-unsigned long start_time = micros();
+// Globals for spin state - when did we start spinning and how long have we been spinning for?
+unsigned long start_time;
 unsigned long time_spent_this_rotation_us = 0;
 
+// Global for acceleration/deceleration estimation
+unsigned long last_rotation_instant_time = 0;
+
 void init_spin_timer() {
-    // TIMER 3 for interrupt frequency 1000 Hz:
+    // TIMER 3 for interrupt frequency 2000 Hz:
   cli(); // stop interrupts
   TCCR3A = 0; // set entire TCCR1A register to 0
   TCCR3B = 0; // same for TCCR1B
   TCNT3  = 0; // initialize counter value to 0
-  // set compare match register for 1000 Hz increments
-  OCR3A = 15999; // = 16000000 / (1 * 1000) - 1 (must be <65536)
+  // set compare match register for 2000 Hz increments
+  OCR3A = 7999; // = 16000000 / (1 * 2000) - 1 (must be <65536)
   // turn on CTC mode
   TCCR3B |= (1 << WGM12);
   // Set CS12, CS11 and CS10 bits for 1 prescaler
@@ -96,7 +100,7 @@ int get_max_rpm() {
 //calculates time for this rotation of robot
 //robot is steered by increasing / decreasing rotation by factor relative to RC left / right position
 //ie - reducing rotation time estimate below actual results in shift of heading opposite the direction of rotation
-static float get_rotation_interval_ms(int steering_enabled) {
+static unsigned long get_rotation_interval_us(int steering_enabled) {
   
   float radius_adjustment_factor = 0;
 
@@ -118,8 +122,21 @@ static float get_rotation_interval_ms(int steering_enabled) {
 
   if (rpm > highest_rpm || highest_rpm == 0) highest_rpm = rpm;
 
-  float rotation_interval = (1.0f / rpm) * 60 * 1000;
-  return rotation_interval;
+  // How fast it'll take us to spin if we don't accelerate or decelerate
+  unsigned long instant_rotation_interval = (1.0f / rpm) * 60 * 1000 * 1000;
+
+  if (last_rotation_instant_time == 0) {
+    last_rotation_instant_time = instant_rotation_interval;
+  }
+
+  // And now some linear estimation. We know our previous instantaneous rotation rate, we know our current instantaneous rotation rate,
+  // which means we can gueess our next instantaneous rotation rate linearily, with next = current + (current-previous)
+  // But we want average rotation rate instead, which is to say, (current+next)/2
+  // Algebra them together and you get...
+  unsigned long predicted_rotation_rate = (3*instant_rotation_interval - last_rotation_instant_time)/2;
+
+  last_rotation_instant_time = instant_rotation_interval;
+  return predicted_rotation_rate;
 }
 
 
@@ -171,7 +188,11 @@ static struct melty_parameters_t handle_config_mode(melty_parameters_t *melty_pa
 }
 
 //Calculates all parameters need for a single rotation (motor timing, LED timing, etc.)
-//This entire section takes ~1300us on an Atmega32u4 (acceptable - fast enough to not have major impact on tracking accuracy)
+//This entire section takes ~1300us on an Atmega32u4
+//Which means it will be interrupted by the hot loop multiple times
+//Fortunately, once the bot is spinning, it spins fast enough that no human is going to move the controls significantly in a single loop
+//So, partially stale data for one update isn't going to break anything
+//Todo: Rethink this assumption when we get into omnidirectional maneuvering, because then there'll be a pole right in the middle of the deadzone
 static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   // set some of the defaults
   melty_parameters->led_shimmer = 0;
@@ -190,7 +211,7 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
     handle_config_mode(melty_parameters);
   }
 
-  melty_parameters->rotation_interval_us = get_rotation_interval_ms(melty_parameters->movement_enabled) * 1000;
+  melty_parameters->rotation_interval_us = get_rotation_interval_us(melty_parameters->movement_enabled);
 
   //if we are too slow - don't even try to track heading
   if (melty_parameters->rotation_interval_us > MAX_TRACKING_ROTATION_INTERVAL_US) {
@@ -220,8 +241,8 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   // translation control!
   // Because there's a lot of math here, we're going to compute the actual dshot commands once
   // So then in the hot loop we can just spam the known codes
-  int throttle_high_perk = min(melty_parameters->throttle_perk + (melty_parameters->movement_enabled * translate_disp * melty_parameters->throttle_perk / 256), 1023);
-  int throttle_low_perk = max(melty_parameters->throttle_perk - (melty_parameters->movement_enabled * translate_disp * melty_parameters->throttle_perk / 256), 0);
+  int throttle_high_perk = min(melty_parameters->throttle_perk + (melty_parameters->movement_enabled * translate_disp * melty_parameters->throttle_perk / 512), 1023);
+  int throttle_low_perk = max(melty_parameters->throttle_perk - (melty_parameters->movement_enabled * translate_disp * melty_parameters->throttle_perk / 512), 0);
 
   melty_parameters->throttle_high_dshot = perk2dshot(throttle_high_perk);
   melty_parameters->throttle_low_dshot = perk2dshot(throttle_low_perk);
@@ -269,7 +290,8 @@ void spin_one_rotation(void) {
   delayMicroseconds(melty_parameters.rotation_interval_us - 2048);
 }
 
-ISR(TIMER3_COMPA_vect){
+// The hot loop
+ISR(TIMER3_COMPA_vect) {
   // fast bail if we aren't supposed to be spinning.
   // disable_spin() already stopped the motors, so we can just return
   if (!melty_parameters.spin_enabled) {
@@ -277,6 +299,7 @@ ISR(TIMER3_COMPA_vect){
   }
 
   time_spent_this_rotation_us = micros() - start_time;
+  
   if (time_spent_this_rotation_us > melty_parameters.rotation_interval_us) {
     time_spent_this_rotation_us -= melty_parameters.rotation_interval_us;
     start_time += melty_parameters.rotation_interval_us;
