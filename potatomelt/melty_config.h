@@ -29,7 +29,7 @@
                                                   //Just enterring and exiting config mode will automatically set this value / save to EEPROM (based on current accel reading reflecting 0g)
                                                   //For small-radius bots - try changing to H3LIS331 to +/-200g range for improved accuracy (accel_handler.h)
 
-#define ACCEL_NONLINEAR_CORRECTION_FACTOR 0.018f   // An exponential factor for the acceleration -> rpm mapping - the H3LIS331 isn't always linear
+#define ACCEL_NONLINEAR_CORRECTION_FACTOR 0.016f   // An exponential factor for the acceleration -> rpm mapping - the H3LIS331 isn't always linear
                                                   // A small positive factor will help if your bot's tracking falls behind at higher RPMs (the accelerometer is lagging behind, so give more G per G)
                                                   // and a small negative factor will help if your bot's tracking advances at higher RPMs (the accelerometer is over-measuring, so give less G per G)
 
@@ -53,8 +53,10 @@
 //----------BATTERY MONITOR----------
 #define BATTERY_ALERT_ENABLED                     //if enabled - heading LED will flicker when battery voltage is low
 #define VOLTAGE_DIVIDER 11                        //(~10:1 works well - 10kohm to GND, 100kohm to Bat+).  Resistors have tolerances!  Adjust as needed...
-#define BATTERY_ADC_WARN_VOLTAGE_THRESHOLD 7.0f   //If voltage drops below this value - then alert is triggered
-#define BATTERY_ADC_HALT_VOLTAGE_THRESHOLD 6.5f   //If voltage drops below _this_ value, stop the robot
+#define BATTERY_CELL_COUNT 3                      //How many cells are in the battery? This will multiply the thresholds
+#define BATTERY_ADC_WARN_VOLTAGE_THRESHOLD 3.75f  //If voltage per cell drops below this value - then alert is triggered
+#define BATTERY_ADC_HALT_VOLTAGE_THRESHOLD 3.6f   //If voltage per cell drops below _this_ value, stop the robot
+#define BATTERY_UNPLUGGED_VOLTAGE_THRESHOLD 5.25f //On the other hand, if we're seeing 5v or slightly above, odds are that there isn't a battery plugged in, and we're backfeeding usb line voltage. Don't alarm.
 #define ARDUINIO_VOLTAGE 5.0f                     //Needed for ADC maths for battery monitor
 #define LOW_BAT_REPEAT_READS_BEFORE_ALARM 20      //Requires this many ADC reads below threshold before alarming
 

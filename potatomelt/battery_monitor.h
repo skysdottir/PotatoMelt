@@ -2,5 +2,8 @@
 //(settings in melty_config.h)
 bool battery_voltage_low();
 
+//check for critically low battery- the stop-the-robot level bad
+bool battery_voltage_crit();
+
 //returns battery voltage
 float get_battery_voltage();

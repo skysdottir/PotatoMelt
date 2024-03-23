@@ -11,11 +11,24 @@ float get_battery_voltage() {
 //(settings in melty_config.h)
 int battery_voltage_low(){
   static int low_bat_count = 0;
-  if (get_battery_voltage() < BATTERY_ADC_WARN_VOLTAGE_THRESHOLD) {
+  if (get_battery_voltage() < BATTERY_ADC_WARN_VOLTAGE_THRESHOLD * BATTERY_CELL_COUNT) {
     low_bat_count++;
   } else {
     low_bat_count = 0;
   }
   if (low_bat_count > LOW_BAT_REPEAT_READS_BEFORE_ALARM) return true;
+  return false;
+}
+
+//check for critically low battery- same as before, only alarm after so many low reads in a row
+int battery_voltage_crit(){
+  static int crit_bat_count = 0;
+  float v = get_battery_voltage();
+  if (v < BATTERY_ADC_HALT_VOLTAGE_THRESHOLD * BATTERY_CELL_COUNT && v > BATTERY_UNPLUGGED_VOLTAGE_THRESHOLD) {
+    crit_bat_count++;
+  } else {
+    crit_bat_count = 0;
+  }
+  if (crit_bat_count > LOW_BAT_REPEAT_READS_BEFORE_ALARM) return true;
   return false;
 }

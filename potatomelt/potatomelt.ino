@@ -172,9 +172,29 @@ void loop() {
 
   service_watchdog();             //keep the watchdog happy
 
+  if(battery_voltage_crit())
+  {
+    disable_spin();
+    
+    // "-..." : Morse 'B' for Battery
+    heading_led_on(0); delay(300);
+    heading_led_off(); delay(100);
+
+    for(int i = 0; i < 3; i++) {
+      heading_led_on(0); delay(100);
+      heading_led_off(); delay(100);
+    }
+
+    delay(600);
+    service_watchdog();
+    echo_diagnostics();
+
+    return;
+  }
+
   //if the rc signal isn't good - assure motors off - and "slow flash" LED
   //this will interrupt a spun-up bot if the signal becomes bad
-  while (rc_signal_is_healthy() == false) {
+  if (rc_signal_is_healthy() == false) {
     disable_spin();
     
     heading_led_on(0); delay(30);
@@ -183,6 +203,9 @@ void loop() {
     //services watchdog and echo diagnostics while we are waiting for RC signal
     service_watchdog();
     echo_diagnostics();
+
+    // And then bail
+    return;
   }
 
   #ifdef ENABLE_TANK_MODE

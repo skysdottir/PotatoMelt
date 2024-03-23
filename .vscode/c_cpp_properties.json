@@ -9,7 +9,18 @@
             "includePath": [
                 "C:\\Users\\Danielle\\AppData\\Local\\Arduino15\\**",
                 "C:\\Users\\Danielle\\Documents\\Arduino\\**",
-                "C:\\Users\\Danielle\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\**"
+                "C:\\Users\\Danielle\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\**",
+                "C:\\Users\\Danielle\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\cores\\arduino",
+                "C:\\Users\\Danielle\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\avr\\1.4.15\\variants\\itsybitsy32u4",
+                "C:\\Users\\Danielle\\Documents\\Arduino\\libraries\\SparkFun_LIS331_Arduino_Library\\src",
+                "C:\\Users\\Danielle\\Documents\\Arduino\\libraries\\Adafruit_SleepyDog_Library",
+                "C:\\Users\\Danielle\\AppData\\Local\\Arduino15\\packages\\adafruit\\hardware\\avr\\1.4.15\\libraries\\Wire",
+                "C:\\Users\\Danielle\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\libraries\\EEPROM\\src",
+                "C:\\Users\\Danielle\\Documents\\Arduino\\libraries\\IBusBM\\src",
+                "C:\\Users\\Danielle\\AppData\\Local\\Arduino15\\packages\\arduino\\hardware\\avr\\1.8.6\\libraries\\SPI\\src",
+                "c:\\users\\danielle\\appdata\\local\\arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7\\lib\\gcc\\avr\\7.3.0\\include",
+                "c:\\users\\danielle\\appdata\\local\\arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7\\lib\\gcc\\avr\\7.3.0\\include-fixed",
+                "c:\\users\\danielle\\appdata\\local\\arduino15\\packages\\arduino\\tools\\avr-gcc\\7.3.0-atmel3.6.1-arduino7\\avr\\include"
             ],
             "forcedInclude": [],
             "cStandard": "c17",
