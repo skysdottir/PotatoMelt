@@ -49,7 +49,7 @@ bool rc_get_is_lr_in_normal_deadzone() {
 
 
 //returns RC_FORBACK_FORWARD, RC_FORBACK_BACKWARD or RC_FORBACK_NEUTRAL based on stick position
-rc_forback rc_get_forback() {
+rc_forback rc_get_forback_bit() {
 
   int pulse_length = IBus.readChannel(1);
 
@@ -60,7 +60,7 @@ rc_forback rc_get_forback() {
 }
 
 // Returns -512 -> 512 for the forwards-backwards axis
-int rc_get_trans() {
+int rc_get_forback_trans() {
   int stick_position = IBus.readChannel(1);
   return stick_position - CENTER_FORBACK_PULSE_LENGTH;
 }
@@ -77,6 +77,10 @@ int rc_get_leftright() {
 // returns true if we're in tank mode!
 bool rc_get_tank_mode() {
   return IBus.readChannel(4) > CENTER_FORBACK_PULSE_LENGTH;
+}
+
+int rc_get_spin_dir() {
+  return (IBus.readChannel(6) > CENTER_FORBACK_PULSE_LENGTH) ? 1 : -1;
 }
 
 //attach interrupts to rc pins

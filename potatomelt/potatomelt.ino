@@ -94,7 +94,7 @@ static void echo_diagnostics() {
   Serial.print("  RC Health: "); Serial.print(rc_signal_is_healthy());
   Serial.print("  RC Throttle: "); Serial.print(rc_get_throttle_perk());
   Serial.print("  RC L/R: "); Serial.print(rc_get_leftright());
-  Serial.print("  RC F/B: "); Serial.print(rc_get_trans());
+  Serial.print("  RC F/B: "); Serial.print(rc_get_forback_trans());
 
 #ifdef BATTERY_ALERT_ENABLED
   Serial.print("  Battery Voltage: "); Serial.print(get_battery_voltage());
@@ -112,10 +112,10 @@ static void echo_diagnostics() {
 //Used to flash out max recorded RPM 100's of RPMs
 static void display_rpm_if_requested() {
   //triggered by user pushing throttle up while bot is at idle for 750ms
-  if (rc_get_forback() == RC_FORBACK_FORWARD) {
+  if (rc_get_forback_bit() == RC_FORBACK_FORWARD) {
     delay(750);
      //verify throttle at zero to prevent accidental entry into RPM flash
-    if (rc_get_forback() == RC_FORBACK_FORWARD && rc_get_throttle_perk() == 0) {
+    if (rc_get_forback_bit() == RC_FORBACK_FORWARD && rc_get_throttle_perk() == 0) {
        
       //throttle up cancels RPM count
       for (int x = 0; x < get_max_rpm() && rc_get_throttle_perk() == 0; x = x + 100) {
@@ -131,14 +131,14 @@ static void display_rpm_if_requested() {
 //checks if user has requested to enter / exit config mode
 static void check_config_mode() {
   //if user pulls control stick back for 750ms - enters (or exits) interactive configuration mode
-  if (rc_get_forback() == RC_FORBACK_BACKWARD) {
+  if (rc_get_forback_bit() == RC_FORBACK_BACKWARD) {
     delay(750);
-    if (rc_get_forback() == RC_FORBACK_BACKWARD) {
+    if (rc_get_forback_bit() == RC_FORBACK_BACKWARD) {
       toggle_config_mode(); 
       if (get_config_mode() == false) save_melty_config_settings();    //save melty settings on config mode exit
       
       //wait for user to release stick - so we don't re-toggle modes
-      while (rc_get_forback() == RC_FORBACK_BACKWARD) {
+      while (rc_get_forback_bit() == RC_FORBACK_BACKWARD) {
         service_watchdog();
       }
     }
@@ -167,14 +167,8 @@ static void handle_bot_idle() {
     echo_diagnostics();           //echo diagnostics if bot is idle
 }
 
-//main control loop
-void loop() {
-
-  service_watchdog();             //keep the watchdog happy
-
-  if(battery_voltage_crit())
-  {
-    disable_spin();
+static void handle_battery_crit() {
+  disable_spin();
     
     // "-..." : Morse 'B' for Battery
     heading_led_on(0); delay(300);
@@ -188,7 +182,16 @@ void loop() {
     delay(600);
     service_watchdog();
     echo_diagnostics();
+}
 
+//main control loop
+void loop() {
+
+  service_watchdog();             //keep the watchdog happy
+
+  if(battery_voltage_crit())
+  {
+    handle_battery_crit();
     return;
   }
 
@@ -200,8 +203,7 @@ void loop() {
     heading_led_on(0); delay(30);
     heading_led_off(); delay(600);
     
-    //services watchdog and echo diagnostics while we are waiting for RC signal
-    service_watchdog();
+    //echo diagnostics while we are waiting for RC signal
     echo_diagnostics();
 
     // And then bail

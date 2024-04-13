@@ -143,14 +143,14 @@ static unsigned long get_rotation_interval_us(int steering_enabled) {
 //performs changes to melty parameters when in config mode
 static struct melty_parameters_t handle_config_mode(melty_parameters_t *melty_parameters) {
 
-  melty_parameters->translate_forback = rc_get_forback();
+  int forback = rc_get_forback_bit();
   //if forback forward - normal drive (for driver testing - no adjustment of melty parameters)
 
   //if forback neutral - then do radius adjustment
-  if (melty_parameters->translate_forback == RC_FORBACK_NEUTRAL) {
+  if (forback == RC_FORBACK_NEUTRAL) {
 
     //radius adjustment overrides steering
-    melty_parameters->movement_enabled = 0;
+    melty_parameters->translation_enabled = 0;
 
     //only adjust if stick is outside deadzone    
     if (rc_get_is_lr_in_config_deadzone() == false) {
@@ -166,9 +166,9 @@ static struct melty_parameters_t handle_config_mode(melty_parameters_t *melty_pa
   }
   
   //if forback backward - do LED heading adjustment (don't translate)
-  if (melty_parameters->translate_forback == RC_FORBACK_BACKWARD) {
+  if (forback == RC_FORBACK_BACKWARD) {
     //LED heading offset adjustment disables movement
-    melty_parameters->movement_enabled = 0;
+    melty_parameters->translation_enabled = 0;
     
     //only adjust if stick is outside deadzone  
     if (rc_get_is_lr_in_config_deadzone() == false) {
@@ -196,13 +196,13 @@ static struct melty_parameters_t handle_config_mode(melty_parameters_t *melty_pa
 static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   // set some of the defaults
   melty_parameters->led_shimmer = 0;
-  melty_parameters->movement_enabled = 1;
+  melty_parameters->translation_enabled = 1;
 
   float led_offset_portion = led_offset_percent / 100.0f;
 
-  melty_parameters->throttle_perk = rc_get_throttle_perk();
+  int throttle_perk = rc_get_throttle_perk();
 
-  float led_on_portion = melty_parameters->throttle_perk / 1024.0f;  //LED width changes with throttle percent
+  float led_on_portion = throttle_perk / 1024.0f;  //LED width changes with throttle percent
   if (led_on_portion < 0.10f) led_on_portion = 0.10f;
   if (led_on_portion > 0.90f) led_on_portion = 0.90f;
 
@@ -211,7 +211,7 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
     handle_config_mode(melty_parameters);
   }
 
-  melty_parameters->rotation_interval_us = get_rotation_interval_us(melty_parameters->movement_enabled);
+  melty_parameters->rotation_interval_us = get_rotation_interval_us(melty_parameters->translation_enabled);
 
   //if we are too slow - don't even try to track heading
   if (melty_parameters->rotation_interval_us > MAX_TRACKING_ROTATION_INTERVAL_US) {
@@ -237,12 +237,17 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   melty_parameters->motor_start_phase_1 = 0;
   melty_parameters->motor_start_phase_2 = melty_parameters->rotation_interval_us / 2;
 
-  int translate_disp = rc_get_trans();
+  int translate_disp = rc_get_forback_trans();
   // translation control!
   // Because there's a lot of math here, we're going to compute the actual dshot commands once
   // So then in the hot loop we can just spam the known codes
-  int throttle_high_perk = min(melty_parameters->throttle_perk + (melty_parameters->movement_enabled * translate_disp * melty_parameters->throttle_perk / 512), 1023);
-  int throttle_low_perk = max(melty_parameters->throttle_perk - (melty_parameters->movement_enabled * translate_disp * melty_parameters->throttle_perk / 512), 0);
+  int throttle_high_perk = min(throttle_perk + (melty_parameters->translation_enabled * translate_disp * throttle_perk / 512), 1023);
+  int throttle_low_perk = max(throttle_perk - (melty_parameters->translation_enabled * translate_disp * throttle_perk / 512), 0);
+
+  int motor_dir = rc_get_spin_dir();
+
+  throttle_high_perk *= motor_dir;
+  throttle_low_perk *= motor_dir;
 
   melty_parameters->throttle_high_dshot = perk2dshot(throttle_high_perk);
   melty_parameters->throttle_low_dshot = perk2dshot(throttle_low_perk);

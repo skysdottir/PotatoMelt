@@ -62,6 +62,5 @@ void motors_off() {
 void init_motors() {
   motor1.attach(MOTOR_PIN1);
   motor2.attach(MOTOR_PIN2);
-  configure_motors(10); // Enable 3d maneuvering mode- which is to say, bidirectionality. Just in case it wasn't already.
   motors_off();
 }

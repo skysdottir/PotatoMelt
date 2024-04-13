@@ -28,7 +28,7 @@ void init_spin_timer();
 
 typedef struct melty_parameters_t {
   bool spin_enabled;                  // Authorization for the hot loop to spin
-  int translate_forback;              //RC_FORBACK_FORWARD, RC_FORBACK_BACKWARD, RC_FORBACK_NETURAL
+  int translation_enabled;            // Authorization for the spinning bot to translate
   int throttle_perk;                  //stores throttle out of 0-1024
   int throttle_high_dshot;            // for translation, the approaching wheel power, as dshot expects it
   int throttle_low_dshot;             // for translation, the receeding wheel power, as dshot expects it
@@ -37,6 +37,6 @@ typedef struct melty_parameters_t {
 	unsigned long led_stop;             //offset for end of LED beacon
 	unsigned long motor_start_phase_1;  //time offset for when motor 1 begins translating forwards
 	unsigned long motor_start_phase_2;  //time offset for when motor 2 begins translating forwards
-  int movement_enabled;               //Used for config mode- if set to 0, we won't rotate or translate this spin
+
   int led_shimmer;                    //LED is shimmering to indicate something to the user
 };
