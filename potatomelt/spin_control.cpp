@@ -32,7 +32,7 @@ double pid_target_rpm = 0.0;  // Setpoint for the PID: The target RPM
 double pid_throttle_output = 0.0; // Output from the PID: How hard to run the throttle
 
 // We're using a PID to control motor power, to chase a RPM set by the throttle channel
-PID throttle_pid(&pid_current_rpm, &pid_throttle_output, &pid_target_rpm, PID_KP, PID_KI, PID_KD, P_ON_M, DIRECT);
+PID throttle_pid(&pid_current_rpm, &pid_throttle_output, &pid_target_rpm, PID_KP, PID_KI, PID_KD, P_ON_E, DIRECT);
 
 //-initial- assignment of melty parameters
 melty_parameters_t melty_parameters;
