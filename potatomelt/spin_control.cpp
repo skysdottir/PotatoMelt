@@ -202,10 +202,6 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
 
   int throttle_perk = rc_get_throttle_perk();
 
-  float led_on_portion = throttle_perk / 1024.0f;  //LED width changes with throttle percent
-  if (led_on_portion < 0.10f) led_on_portion = 0.10f;
-  if (led_on_portion > 0.90f) led_on_portion = 0.90f;
-
   //if we are in config mode - handle it (and disable steering if needed)
   if (get_config_mode() == true) {
     handle_config_mode(melty_parameters);
@@ -217,6 +213,11 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   if (melty_parameters->rotation_interval_us > MAX_TRACKING_ROTATION_INTERVAL_US) {
     melty_parameters->rotation_interval_us = MAX_TRACKING_ROTATION_INTERVAL_US;
   }
+
+  //LED width changes with RPM - Totally spitballing ratios here
+  float led_on_portion = 16000.0f / melty_parameters->rotation_interval_us;  
+  if (led_on_portion < 0.10f) led_on_portion = 0.10f;
+  if (led_on_portion > 0.90f) led_on_portion = 0.90f;
 
   unsigned long led_on_us = led_on_portion * melty_parameters->rotation_interval_us;
   unsigned long led_offset_us = led_offset_portion * melty_parameters->rotation_interval_us;
@@ -241,8 +242,8 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   // translation control!
   // Because there's a lot of math here, we're going to compute the actual dshot commands once
   // So then in the hot loop we can just spam the known codes
-  int throttle_high_perk = min(throttle_perk + (melty_parameters->translation_enabled * translate_disp * throttle_perk / 512), 1023);
-  int throttle_low_perk = max(throttle_perk - (melty_parameters->translation_enabled * translate_disp * throttle_perk / 512), 0);
+  int throttle_high_perk = min(throttle_perk + (melty_parameters->translation_enabled * translate_disp * throttle_perk / 128), 1023);
+  int throttle_low_perk = max(throttle_perk - (melty_parameters->translation_enabled * translate_disp * throttle_perk / 128), 0);
 
   int motor_dir = rc_get_spin_dir();
 

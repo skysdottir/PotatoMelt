@@ -1,5 +1,5 @@
 {
     "sketch": "potatomelt\\potatomelt.ino",
     "board": "adafruit:avr:itsybitsy32u4_5V",
-    "port": "COM9"
+    "port": "COM8"
 }

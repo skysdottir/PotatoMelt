@@ -29,11 +29,11 @@
                                                   //Just enterring and exiting config mode will automatically set this value / save to EEPROM (based on current accel reading reflecting 0g)
                                                   //For small-radius bots - try changing to H3LIS331 to +/-200g range for improved accuracy (accel_handler.h)
 
-#define ACCEL_NONLINEAR_CORRECTION_FACTOR 0.0007f   // An exponential factor for the acceleration -> rpm mapping - the H3LIS331 isn't always linear
+#define ACCEL_NONLINEAR_CORRECTION_FACTOR 0.0005f   // An exponential factor for the acceleration -> rpm mapping - the H3LIS331 isn't always linear
                                                   // A small positive factor will help if your bot's tracking falls behind at higher RPMs (the accelerometer is lagging behind, so give more G per G)
                                                   // and a small negative factor will help if your bot's tracking advances at higher RPMs (the accelerometer is over-measuring, so give less G per G)
 
-#define LEFT_RIGHT_HEADING_CONTROL_DIVISOR 1.0f   //How quick steering is (larger values = slower)
+#define LEFT_RIGHT_HEADING_CONTROL_DIVISOR 2.0f   //How quick steering is (larger values = slower)
 
 #define MIN_TRANSLATION_RPM 400                   //full power spin in below this number (increasing can reduce spin-up time)
 
