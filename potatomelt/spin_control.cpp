@@ -100,12 +100,12 @@ int get_max_rpm() {
 //calculates time for this rotation of robot
 //robot is steered by increasing / decreasing rotation by factor relative to RC left / right position
 //ie - reducing rotation time estimate below actual results in shift of heading opposite the direction of rotation
-static unsigned long get_rotation_interval_us(int steering_enabled) {
+static void get_rotation_interval_us(melty_parameters_t *melty_parameters) {
   
   float radius_adjustment_factor = 0;
 
   //don't adjust steering if disabled by config mode - or we are in RC deadzone
-  if (steering_enabled == 1 && rc_get_is_lr_in_normal_deadzone() == false) {
+  if (melty_parameters->translation_enabled == 1 && rc_get_is_lr_in_normal_deadzone() == false) {
     radius_adjustment_factor = (float)(rc_get_leftright() / (float)NOMINAL_PULSE_RANGE) / LEFT_RIGHT_HEADING_CONTROL_DIVISOR;
   }
   
@@ -120,11 +120,14 @@ static unsigned long get_rotation_interval_us(int steering_enabled) {
   rpm = rpm / effective_radius_in_cm;
   rpm = sqrt(rpm);
 
+  melty_parameters->rpm = rpm;
+
   if (rpm > highest_rpm || highest_rpm == 0) highest_rpm = rpm;
 
   // How fast it'll take us to spin if we don't accelerate or decelerate
   unsigned long instant_rotation_interval = (1.0f / rpm) * 60 * 1000 * 1000;
 
+#ifdef USE_LINEAR_ESTIMATION_FOR_ROTATION_TIME
   if (last_rotation_instant_time == 0) {
     last_rotation_instant_time = instant_rotation_interval;
   }
@@ -136,9 +139,11 @@ static unsigned long get_rotation_interval_us(int steering_enabled) {
   unsigned long predicted_rotation_rate = (3*instant_rotation_interval - last_rotation_instant_time)/2;
 
   last_rotation_instant_time = instant_rotation_interval;
-  return predicted_rotation_rate;
+  melty_parameters->rotation_interval_us = predicted_rotation_rate;
+#elif
+  melty_parameters->rotation_interval_us = instant_rotation_interval;
+#endif
 }
-
 
 //performs changes to melty parameters when in config mode
 static struct melty_parameters_t handle_config_mode(melty_parameters_t *melty_parameters) {
@@ -207,7 +212,7 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
     handle_config_mode(melty_parameters);
   }
 
-  melty_parameters->rotation_interval_us = get_rotation_interval_us(melty_parameters->translation_enabled);
+  get_rotation_interval_us(melty_parameters);
 
   //if we are too slow - don't even try to track heading
   if (melty_parameters->rotation_interval_us > MAX_TRACKING_ROTATION_INTERVAL_US) {
@@ -215,7 +220,7 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   }
 
   //LED width changes with RPM - Totally spitballing ratios here
-  float led_on_portion = 16000.0f / melty_parameters->rotation_interval_us;  
+  float led_on_portion = MAX_TARGET_RPM / melty_parameters->rpm;  
   if (led_on_portion < 0.10f) led_on_portion = 0.10f;
   if (led_on_portion > 0.90f) led_on_portion = 0.90f;
 

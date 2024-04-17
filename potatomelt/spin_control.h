@@ -29,6 +29,7 @@ void init_spin_timer();
 typedef struct melty_parameters_t {
   bool spin_enabled;                  // Authorization for the hot loop to spin
   int translation_enabled;            // Authorization for the spinning bot to translate
+  float rpm;                          // The robot's RPM- technically a dupe of rotation_interval_us
   int throttle_perk;                  //stores throttle out of 0-1024
   int throttle_high_dshot;            // for translation, the approaching wheel power, as dshot expects it
   int throttle_low_dshot;             // for translation, the receeding wheel power, as dshot expects it

@@ -18,7 +18,7 @@
 //----------FEATURES---------
 #define ENABLE_TANK_MODE                          //Comment out to disable tank-mode driving (useful for positioning the bot in the box pre-spinup)
 
-//----------TRANSLATIONAL DRIFT SETTINGS----------
+//----------SPIN CONTROL SETTINGS----------
 //"DEFAULT" values are overriden by interactive config / stored in EEPROM (interactive config will be easier if they are about correct)
 //To force these values to take effect after interactive config - increment EEPROM_WRITTEN_SENTINEL_VALUE
 #define DEFAULT_ACCEL_MOUNT_RADIUS_CM 3.17        //Radius of accelerometer from center of robot
@@ -29,10 +29,16 @@
                                                   //Just enterring and exiting config mode will automatically set this value / save to EEPROM (based on current accel reading reflecting 0g)
                                                   //For small-radius bots - try changing to H3LIS331 to +/-200g range for improved accuracy (accel_handler.h)
 
-#define ACCEL_NONLINEAR_CORRECTION_FACTOR 0.0005f   // An exponential factor for the acceleration -> rpm mapping - the H3LIS331 isn't always linear
+#define ACCEL_NONLINEAR_CORRECTION_FACTOR 0.0005f // An exponential factor for the acceleration -> rpm mapping - the H3LIS331 isn't always linear
                                                   // A small positive factor will help if your bot's tracking falls behind at higher RPMs (the accelerometer is lagging behind, so give more G per G)
                                                   // and a small negative factor will help if your bot's tracking advances at higher RPMs (the accelerometer is over-measuring, so give less G per G)
 
+#define MAX_TARGET_RPM 2400                       // How fast 100% throttle should target spinning - this can be above the accelerometer's peak loading, but is not recommended
+                                                  // Really, 2k rpm is plenty for most work
+
+#define USE_LINEAR_ESTIMATION_FOR_ROTATION_TIME   // Linear estimation of rotation time can give better tracking when accelerating or decelerating
+
+//------------TRANSLATIONAL DRIFT SETTINGS-----------
 #define LEFT_RIGHT_HEADING_CONTROL_DIVISOR 2.0f   //How quick steering is (larger values = slower)
 
 #define MIN_TRANSLATION_RPM 400                   //full power spin in below this number (increasing can reduce spin-up time)
@@ -52,6 +58,7 @@
 
 //----------BATTERY MONITOR----------
 #define BATTERY_ALERT_ENABLED                     //if enabled - heading LED will flicker when battery voltage is low
+#define BATTERY_CRIT_HALT_ENABLED                 //if enabled - robot will halt when battery voltage is critically low
 #define VOLTAGE_DIVIDER 11                        //(~10:1 works well - 10kohm to GND, 100kohm to Bat+).  Resistors have tolerances!  Adjust as needed...
 #define BATTERY_CELL_COUNT 3                      //How many cells are in the battery? This will multiply the thresholds
 #define BATTERY_ADC_WARN_VOLTAGE_THRESHOLD 3.75f  //If voltage per cell drops below this value - then alert is triggered
@@ -64,7 +71,7 @@
 //----------SAFETY----------
 #define ENABLE_WATCHDOG                           //Uses Adafruit's sleepdog to enable watchdog / reset (tested on AVR - should work for ARM https://github.com/adafruit/Adafruit_SleepyDog)
 #define WATCH_DOG_TIMEOUT_MS 2000                 //Timeout value for watchdog (not all values are supported - 2000ms verified with Arudino Micro)
-#define CONTROL_MOTION_TIMEOUT_MS 3000            //Timeout value for stick motion / loss of signal - backup failsafe system
+#define CONTROL_MOTION_TIMEOUT_MS 3000            //Timeout value for stick motion / loss of signal - backup failsafe system in case the rx doesn't failsafe correctly
 #define VERIFY_RC_THROTTLE_ZERO_AT_BOOT           //Requires RC throttle be 0% at boot to allow spin-up for duration of MAX_MS_BETWEEN_RC_UPDATES (about 1 second)
                                                   //Intended as safety feature to prevent bot from spinning up at power-on if RC was inadvertently left on.
                                                   //Downside is if unexpected reboot occurs during a fight - driver will need to set throttle to zero before power 
