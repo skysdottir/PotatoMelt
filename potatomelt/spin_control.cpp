@@ -10,6 +10,7 @@
 #include "config_storage.h"
 #include "led_driver.h"
 #include "battery_monitor.h"
+#include <PID_v1.h>
 
 #define ACCEL_MOUNT_RADIUS_MINIMUM_CM 0.2                 //Never allow interactive config to set below this value
 #define LEFT_RIGHT_CONFIG_RADIUS_ADJUST_DIVISOR 50.0f     //How quick accel. radius is adjusted in config mode (larger values = slower)
@@ -24,6 +25,14 @@ static float led_offset_percent = DEFAULT_LED_OFFSET_PERCENT;         //stored i
 
 static unsigned int highest_rpm = 0;
 static bool config_mode = false;   //1 if we are in config mode
+
+// Variables for the PID - it doesn't take args directly, just gets pointers to these
+double pid_current_rpm = 0.0; // Input to the PID: The current RPM
+double pid_target_rpm = 0.0;  // Setpoint for the PID: The target RPM
+double pid_throttle_output = 0.0; // Output from the PID: How hard to run the throttle
+
+// We're using a PID to control motor power, to chase a RPM set by the throttle channel
+PID throttle_pid(&pid_current_rpm, &pid_throttle_output, &pid_target_rpm, PID_KP, PID_KI, PID_KD, P_ON_M, DIRECT);
 
 //-initial- assignment of melty parameters
 melty_parameters_t melty_parameters;
@@ -50,6 +59,13 @@ void init_spin_timer() {
   // enable timer compare interrupt
   TIMSK3 |= (1 << OCIE3A);
   sei(); // allow interrupts
+}
+
+void init_pid() {
+  throttle_pid.SetOutputLimits(0.0, 1023.0);
+  
+  // Iterate once every 20ms - high-speed PID, yay
+  throttle_pid.SetSampleTime(20);
 }
 
 //loads settings from EEPROM
@@ -120,7 +136,7 @@ static void get_rotation_interval_us(melty_parameters_t *melty_parameters) {
   rpm = rpm / effective_radius_in_cm;
   rpm = sqrt(rpm);
 
-  melty_parameters->rpm = rpm;
+  pid_current_rpm = rpm;
 
   if (rpm > highest_rpm || highest_rpm == 0) highest_rpm = rpm;
 
@@ -140,7 +156,7 @@ static void get_rotation_interval_us(melty_parameters_t *melty_parameters) {
 
   last_rotation_instant_time = instant_rotation_interval;
   melty_parameters->rotation_interval_us = predicted_rotation_rate;
-#elif
+#else
   melty_parameters->rotation_interval_us = instant_rotation_interval;
 #endif
 }
@@ -205,8 +221,6 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
 
   float led_offset_portion = led_offset_percent / 100.0f;
 
-  int throttle_perk = rc_get_throttle_perk();
-
   //if we are in config mode - handle it (and disable steering if needed)
   if (get_config_mode() == true) {
     handle_config_mode(melty_parameters);
@@ -220,7 +234,7 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   }
 
   //LED width changes with RPM - Totally spitballing ratios here
-  float led_on_portion = melty_parameters->rpm / MAX_TARGET_RPM;  
+  float led_on_portion = pid_current_rpm / MAX_TARGET_RPM;  
   if (led_on_portion < 0.10f) led_on_portion = 0.10f;
   if (led_on_portion > 0.90f) led_on_portion = 0.90f;
 
@@ -244,11 +258,15 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   melty_parameters->motor_start_phase_2 = melty_parameters->rotation_interval_us / 2;
 
   int translate_disp = rc_get_forback_trans();
+  pid_target_rpm = MAX_TARGET_RPM * rc_get_throttle_perk() / 1024.0;
+  
+  throttle_pid.Compute();
+
   // translation control!
   // Because there's a lot of math here, we're going to compute the actual dshot commands once
   // So then in the hot loop we can just spam the known codes
-  int throttle_high_perk = min(throttle_perk + (melty_parameters->translation_enabled * translate_disp * throttle_perk / 128), 1023);
-  int throttle_low_perk = max(throttle_perk - (melty_parameters->translation_enabled * translate_disp * throttle_perk / 128), 0);
+  int throttle_high_perk = min(pid_throttle_output + (melty_parameters->translation_enabled * translate_disp * pid_throttle_output / 128), 1023);
+  int throttle_low_perk = max(pid_throttle_output - (melty_parameters->translation_enabled * translate_disp * pid_throttle_output / 128), 0);
 
   int motor_dir = rc_get_spin_dir();
 
@@ -285,22 +303,30 @@ static void update_heading_led(struct melty_parameters_t melty_parameters, unsig
 
 // Cut the motors!
 void disable_spin() {
+  // Stop the PID
+  throttle_pid.SetMode(MANUAL);
+
+  // Stop the motors
   motors_off();
   melty_parameters.spin_enabled = false;
 }
 
-//rotates the robot once + handles translational drift
-//(repeat as needed)
-void spin_one_rotation(void) {
-  get_melty_parameters(&melty_parameters);
-
+void enable_spin() {
   if (!melty_parameters.spin_enabled) {
+    // Start the PID
+    throttle_pid.SetMode(AUTOMATIC);
+
+    // and start the clock
     start_time = micros();
     melty_parameters.spin_enabled = true;
   }
+}
 
-  // wait until ~2ms before the next rotation to restart the loop
-  delayMicroseconds(melty_parameters.rotation_interval_us - 2048);
+//rotates the robot once + handles translational drift
+//(repeat as needed)
+void spin_one_iteration(void) {
+  get_melty_parameters(&melty_parameters);
+  delay(20);
 }
 
 // The hot loop

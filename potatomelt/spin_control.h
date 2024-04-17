@@ -1,9 +1,12 @@
 
-//does translational drift rotation (robot spins 360 degrees)
-void spin_one_rotation(void);
+//does translational drift rotation (robot spins and computes updated parameters)
+void spin_one_iteration(void);
 
 // Stop spinning!
 void disable_spin();
+
+// Allow spinning! If the throttle's at 0, the bot still won't spin.
+void enable_spin();
 
 //returns maximum rotation speed since last entering config mode
 int get_max_rpm();
@@ -23,13 +26,15 @@ void save_melty_config_settings();
 //sets up the timer interrupt for melty drive hot loop
 void init_spin_timer();
 
+//sets up the PID controller - most notably, sets the output limits to (0, 1023);
+void init_pid();
+
 //holds melty parameters used to determine timing for current spin cycle
 //all time offsets are in microseconds
 
 typedef struct melty_parameters_t {
   bool spin_enabled;                  // Authorization for the hot loop to spin
   int translation_enabled;            // Authorization for the spinning bot to translate
-  float rpm;                          // The robot's RPM- technically a dupe of rotation_interval_us
   int throttle_perk;                  //stores throttle out of 0-1024
   int throttle_high_dshot;            // for translation, the approaching wheel power, as dshot expects it
   int throttle_low_dshot;             // for translation, the receeding wheel power, as dshot expects it

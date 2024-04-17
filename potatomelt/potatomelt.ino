@@ -76,6 +76,8 @@ void setup() {
   }
 #endif
 
+init_pid();
+
 // start the interrupt clock!
 init_spin_timer();
 
@@ -224,7 +226,8 @@ void loop() {
   //if RC is good - and throtte is above 0 - spin a single rotation
  if (rc_get_throttle_perk() > 0) {
     //this is where all the motor control happens!  (see spin_control.cpp)
-    spin_one_rotation();  
+    enable_spin();
+    spin_one_iteration();  
   } else {    
     handle_bot_idle();
   }

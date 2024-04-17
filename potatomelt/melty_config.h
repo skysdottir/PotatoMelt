@@ -33,10 +33,17 @@
                                                   // A small positive factor will help if your bot's tracking falls behind at higher RPMs (the accelerometer is lagging behind, so give more G per G)
                                                   // and a small negative factor will help if your bot's tracking advances at higher RPMs (the accelerometer is over-measuring, so give less G per G)
 
-#define MAX_TARGET_RPM 2400                       // How fast 100% throttle should target spinning - this can be above the accelerometer's peak loading, but is not recommended
+#define MAX_TARGET_RPM 2400.0                     // How fast 100% throttle should target spinning - this can be above the accelerometer's peak loading, but is not recommended
                                                   // Really, 2k rpm is plenty for most work
 
-#define USE_LINEAR_ESTIMATION_FOR_ROTATION_TIME   // Linear estimation of rotation time can give better tracking when accelerating or decelerating
+// #define USE_LINEAR_ESTIMATION_FOR_ROTATION_TIME   // Linear estimation of rotation time can give better tracking when accelerating or decelerating
+
+//-----------PID tuning--------------
+// Tuning PIDs is an art. See: https://pidexplained.com/how-to-tune-a-pid-controller/
+
+#define PID_KP 1.0                                  // Proportional Gain - higher values give more sensitivity, lower values give more stability
+#define PID_KI 0.0                                  // Integral - damping on the rebound curves. Lower values = slower to respond, but less bounces
+#define PID_KD 0.0                                  // Derivative - useful to prevent overshoot of target value.
 
 //------------TRANSLATIONAL DRIFT SETTINGS-----------
 #define LEFT_RIGHT_HEADING_CONTROL_DIVISOR 2.0f   //How quick steering is (larger values = slower)
