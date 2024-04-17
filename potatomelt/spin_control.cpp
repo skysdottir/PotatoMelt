@@ -220,7 +220,7 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   }
 
   //LED width changes with RPM - Totally spitballing ratios here
-  float led_on_portion = MAX_TARGET_RPM / melty_parameters->rpm;  
+  float led_on_portion = melty_parameters->rpm / MAX_TARGET_RPM;  
   if (led_on_portion < 0.10f) led_on_portion = 0.10f;
   if (led_on_portion > 0.90f) led_on_portion = 0.90f;
 
