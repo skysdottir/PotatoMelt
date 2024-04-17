@@ -2,7 +2,7 @@
 #include "arduino.h"
 #include "melty_config.h"
 #include "led_driver.h"
-#include "DShot.h"
+#include <DShot.h>
 #include "motor_driver.h"
 
 //motor_X_on functions are used for the powered phase of each rotation

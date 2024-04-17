@@ -8,23 +8,33 @@ typedef enum {
 
 void init_rc();
 
-bool rc_signal_is_healthy();           //return true if RC signal looks good
-unsigned long compute_checksum();      // Compute a checksum for the current position of the sticks, to use in the previous
+//return true if RC signal looks good
+bool rc_signal_is_healthy();         
 
-int rc_get_throttle_perk();        //returns 0-1023 value indicating throttle level
+// Compute a checksum for the current position of the sticks, to use in the previous
+unsigned long compute_checksum();
 
-int rc_get_forback_trans();                //returns 0-512 value indicating displacement of drive stick forback
+//returns (0,1023) value indicating throttle level
+int rc_get_throttle_perk();
 
-rc_forback rc_get_forback_bit();          //returns RC_FORBACK_FORWARD, RC_FORBACK_NEUTRAL or RC_FORBACK_BACKWARD depending on stick position
-int rc_get_leftright();               //returns offset in microseconds from center value (not converted to percentage)
+//returns (-512,512) value indicating displacement of drive stick forback
+int rc_get_forback_trans();
 
-int rc_get_spin_dir();              // Returns spin direction multiplier
+//returns RC_FORBACK_FORWARD, RC_FORBACK_NEUTRAL or RC_FORBACK_BACKWARD depending on stick position
+rc_forback rc_get_forback_bit();
+
+//returns (-512,512) from center value (not converted to percentage)
+int rc_get_leftright();
+
+// Returns spin direction multiplier
+int rc_get_spin_dir();
 
 //these functions return true if L/R stick movement is below defined thresholds
 bool rc_get_is_lr_in_config_deadzone();  
 bool rc_get_is_lr_in_normal_deadzone();
 
-bool rc_get_tank_mode();
+// Returns true if the switch is active to put the bot in tank mode
+bool rc_get_tank_mode();  
 
 //All pulse lengths in microseconds
 //it's accepted that a TX with fully centered trims may produce values somewhat off these numbers

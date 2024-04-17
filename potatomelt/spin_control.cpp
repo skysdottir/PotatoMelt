@@ -268,6 +268,7 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
 //turns on heading LED at appropriate timing
 static void update_heading_led(struct melty_parameters_t melty_parameters, unsigned long time_spent_this_rotation_us) {
   if (melty_parameters.led_start > melty_parameters.led_stop) {
+    // the LED will be on across 0, so each loop we're shutting it off and then turning it on
     if (time_spent_this_rotation_us >= melty_parameters.led_start || time_spent_this_rotation_us <= melty_parameters.led_stop) {
       heading_led_on(melty_parameters.led_shimmer);
     } else {
@@ -298,6 +299,7 @@ void spin_one_rotation(void) {
     melty_parameters.spin_enabled = true;
   }
 
+  // wait until ~2ms before the next rotation to restart the loop
   delayMicroseconds(melty_parameters.rotation_interval_us - 2048);
 }
 
