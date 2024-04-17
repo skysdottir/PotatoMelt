@@ -265,8 +265,8 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   // translation control!
   // Because there's a lot of math here, we're going to compute the actual dshot commands once
   // So then in the hot loop we can just spam the known codes
-  int throttle_high_perk = min(pid_throttle_output + (melty_parameters->translation_enabled * translate_disp * pid_throttle_output / 128), 1023);
-  int throttle_low_perk = max(pid_throttle_output - (melty_parameters->translation_enabled * translate_disp * pid_throttle_output / 128), 0);
+  int throttle_high_perk = min(pid_throttle_output + (melty_parameters->translation_enabled * translate_disp * pid_throttle_output / 512), 1023);
+  int throttle_low_perk = max(pid_throttle_output - (melty_parameters->translation_enabled * translate_disp * pid_throttle_output / 512), 0);
 
   int motor_dir = rc_get_spin_dir();
 
