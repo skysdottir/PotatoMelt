@@ -34,7 +34,10 @@ bool rc_get_is_lr_in_config_deadzone();
 bool rc_get_is_lr_in_normal_deadzone();
 
 // Returns true if the switch is active to put the bot in tank mode
-bool rc_get_tank_mode();  
+bool rc_get_tank_mode();
+
+// returns true if the accelerometer correction save button is pushed
+bool rc_get_accel_save();
 
 //All pulse lengths in microseconds
 //it's accepted that a TX with fully centered trims may produce values somewhat off these numbers

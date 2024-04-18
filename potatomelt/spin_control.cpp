@@ -19,12 +19,12 @@
 #define MAX_TRANSLATION_ROTATION_INTERVAL_US (1.0f / MIN_TRANSLATION_RPM) * 60 * 1000 * 1000
 #define MAX_TRACKING_ROTATION_INTERVAL_US MAX_TRANSLATION_ROTATION_INTERVAL_US * 2   //don't track heading if we are this slow (also puts upper limit on time spent in melty loop for safety)
 
-static float accel_mount_radius_cm = DEFAULT_ACCEL_MOUNT_RADIUS_CM;
-static float accel_zero_g_offset = DEFAULT_ACCEL_ZERO_G_OFFSET;
 static float led_offset_percent = DEFAULT_LED_OFFSET_PERCENT;         //stored in EEPROM as an INT - but handled as a float for configuration purposes
 
 static unsigned int highest_rpm = 0;
 static bool config_mode = false;   //1 if we are in config mode
+
+static float local_accel_correction_factor = 1.0; // In config mode, instead of using the accelerometer's correction factor, use ours (so we can save it)
 
 // Variables for the PID - it doesn't take args directly, just gets pointers to these
 double pid_current_rpm = 0.0; // Input to the PID: The current RPM
@@ -71,8 +71,6 @@ void init_pid() {
 //loads settings from EEPROM
 void load_melty_config_settings() {
 #ifdef ENABLE_EEPROM_STORAGE 
-  accel_mount_radius_cm = load_accel_mount_radius();
-  accel_zero_g_offset = load_accel_zero_g_offset();
   led_offset_percent = load_heading_led_offset();
 #endif  
 }
@@ -80,26 +78,15 @@ void load_melty_config_settings() {
 //saves settings to EEPROM
 void save_melty_config_settings() {
 #ifdef ENABLE_EEPROM_STORAGE 
-  save_settings_to_eeprom(led_offset_percent, accel_mount_radius_cm, accel_zero_g_offset);
+  save_heading_led_offset(led_offset_percent);
 #endif  
-}
-
-//updated the expected accelerometer reading for 0g 
-//assumes robot is not spinning when config mode is entered
-//value saved to EEPROM on config mode exit
-static void update_accel_zero_g_offset(){
-  int offset_samples = 200;
-  for (int accel_sample_loop = 0; accel_sample_loop < offset_samples; accel_sample_loop ++) {
-    accel_zero_g_offset += get_accel_force_g();
-  }
-  accel_zero_g_offset = accel_zero_g_offset / offset_samples;
 }
 
 void toggle_config_mode() {
   config_mode = !config_mode;
 
   //on entering config mode - update the zero g offset
-  if (config_mode) update_accel_zero_g_offset();
+  if (config_mode) set_accel_zero_offset();
   
   //enterring or exiting config mode also resets highest observed RPM
   highest_rpm = 0;
@@ -118,27 +105,24 @@ int get_max_rpm() {
 //ie - reducing rotation time estimate below actual results in shift of heading opposite the direction of rotation
 static void get_rotation_interval_us(melty_parameters_t *melty_parameters) {
   
-  float radius_adjustment_factor = 0;
+  float rpm = get_uncorrected_rpm();
 
-  //don't adjust steering if disabled by config mode - or we are in RC deadzone
-  if (melty_parameters->translation_enabled == 1 && rc_get_is_lr_in_normal_deadzone() == false) {
-    radius_adjustment_factor = (float)(rc_get_leftright() / (float)NOMINAL_PULSE_RANGE) / LEFT_RIGHT_HEADING_CONTROL_DIVISOR;
+  if (get_config_mode()) {
+    rpm = rpm + rpm * local_accel_correction_factor;
+  } else {
+    rpm = rpm + rpm * get_correction_factor(rpm);
   }
-  
-  float effective_radius_in_cm = accel_mount_radius_cm;
-  
-  effective_radius_in_cm = effective_radius_in_cm + (effective_radius_in_cm * radius_adjustment_factor);
-
-  float rpm;
-  //use of absolute makes it so we don't need to worry about accel orientation
-  //calculate RPM from g's - derived from "G = 0.00001118 * r * RPM^2"
-  rpm = fabs(get_accel_force_g() - accel_zero_g_offset) * 89445.0f;
-  rpm = rpm / effective_radius_in_cm;
-  rpm = sqrt(rpm);
 
   pid_current_rpm = rpm;
 
-  if (rpm > highest_rpm || highest_rpm == 0) highest_rpm = rpm;
+  if (pid_current_rpm > highest_rpm || highest_rpm == 0) highest_rpm = pid_current_rpm;
+
+  // And apply steering correction
+  //don't adjust steering if disabled by config mode - or we are in RC deadzone
+  if (melty_parameters->translation_enabled == 1 && rc_get_is_lr_in_normal_deadzone() == false) {
+    float rpm_adjustment_factor = (float)(rc_get_leftright() / (float)NOMINAL_PULSE_RANGE) / LEFT_RIGHT_HEADING_CONTROL_DIVISOR;
+    rpm = rpm + (rpm * rpm_adjustment_factor);
+  }
 
   // How fast it'll take us to spin if we don't accelerate or decelerate
   unsigned long instant_rotation_interval = (1.0f / rpm) * 60 * 1000 * 1000;
@@ -178,11 +162,9 @@ static struct melty_parameters_t handle_config_mode(melty_parameters_t *melty_pa
       //show that we are changing config
       melty_parameters->led_shimmer = 1;
 
-      float adjustment_factor = (accel_mount_radius_cm * (float)(rc_get_leftright() / (float)NOMINAL_PULSE_RANGE));
-      adjustment_factor = adjustment_factor / LEFT_RIGHT_CONFIG_RADIUS_ADJUST_DIVISOR;
-      accel_mount_radius_cm = accel_mount_radius_cm + adjustment_factor;
-
-      if (accel_mount_radius_cm < ACCEL_MOUNT_RADIUS_MINIMUM_CM) accel_mount_radius_cm = ACCEL_MOUNT_RADIUS_MINIMUM_CM;
+      float adjustment_factor = (float)(rc_get_leftright() / (float)NOMINAL_PULSE_RANGE) / LEFT_RIGHT_CONFIG_RADIUS_ADJUST_DIVISOR;
+      
+      local_accel_correction_factor += adjustment_factor;
     }    
   }
   
@@ -227,6 +209,22 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   }
 
   get_rotation_interval_us(melty_parameters);
+
+  // And now that we have updated the RPM numbers, save new offsets (if we're in config mode)
+  static bool isSaving = false;
+  if (get_config_mode() == true) {
+    bool save = rc_get_accel_save();
+
+    if(!isSaving && save) {
+      set_correction_factor(pid_current_rpm, local_accel_correction_factor);
+    }
+
+    isSaving = save;
+
+    if(isSaving) {
+      melty_parameters->led_shimmer = true;
+    }
+  }
 
   //if we are too slow - don't even try to track heading
   if (melty_parameters->rotation_interval_us > MAX_TRACKING_ROTATION_INTERVAL_US) {

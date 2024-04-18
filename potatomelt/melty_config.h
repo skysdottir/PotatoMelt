@@ -13,7 +13,7 @@
 
 //----------EEPROM----------
 #define ENABLE_EEPROM_STORAGE                     //Comment out this to disable EEPROM (for ARM)
-#define EEPROM_WRITTEN_SENTINEL_VALUE 42          //Changing this value will cause existing EEPROM values to be invalidated (revert to defaults)
+#define EEPROM_WRITTEN_SENTINEL_VALUE 01          //Changing this value will cause existing EEPROM values to be invalidated (revert to defaults)
 
 //----------FEATURES---------
 #define ENABLE_TANK_MODE                          //Comment out to disable tank-mode driving (useful for positioning the bot in the box pre-spinup)
@@ -21,17 +21,13 @@
 //----------SPIN CONTROL SETTINGS----------
 //"DEFAULT" values are overriden by interactive config / stored in EEPROM (interactive config will be easier if they are about correct)
 //To force these values to take effect after interactive config - increment EEPROM_WRITTEN_SENTINEL_VALUE
-#define DEFAULT_ACCEL_MOUNT_RADIUS_CM 3.17        //Radius of accelerometer from center of robot
+#define DEFAULT_ACCEL_MOUNT_RADIUS_CM 2.50         //Radius of accelerometer from center of robot
 #define DEFAULT_LED_OFFSET_PERCENT 57              //Adjust to make heading LED line up with direction robot travels 0-99 (increasing moves beacon clockwise)
                                                    
 #define DEFAULT_ACCEL_ZERO_G_OFFSET 0.0f          //Value accelerometer returns with robot at rest (in G) - adjusts for any offset
                                                   //H3LIS331 claims +/-1g DC offset - typical - but +/-2.5 has been observed at +/-400g setting (enough to cause tracking error)
                                                   //Just enterring and exiting config mode will automatically set this value / save to EEPROM (based on current accel reading reflecting 0g)
                                                   //For small-radius bots - try changing to H3LIS331 to +/-200g range for improved accuracy (accel_handler.h)
-
-#define ACCEL_NONLINEAR_CORRECTION_FACTOR 0.0004f // An exponential factor for the acceleration -> rpm mapping - the H3LIS331 isn't always linear
-                                                  // A small positive factor will help if your bot's tracking falls behind at higher RPMs (the accelerometer is lagging behind, so give more G per G)
-                                                  // and a small negative factor will help if your bot's tracking advances at higher RPMs (the accelerometer is over-measuring, so give less G per G)
 
 #define MAX_TARGET_RPM 2400.0                     // How fast 100% throttle should target spinning - this can be above the accelerometer's peak loading, but is not recommended
                                                   // Really, 2k rpm is plenty for most work

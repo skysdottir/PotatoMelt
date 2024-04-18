@@ -103,7 +103,6 @@ static void echo_diagnostics() {
 #endif 
   
 #ifdef ENABLE_EEPROM_STORAGE  
-  Serial.print("  Accel Radius: "); Serial.print(load_accel_mount_radius());
   Serial.print("  Heading Offset: "); Serial.print(load_heading_led_offset());
   Serial.print("  Zero G Offset: "); Serial.print(load_accel_zero_g_offset());
 #endif  

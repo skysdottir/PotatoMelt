@@ -79,6 +79,11 @@ bool rc_get_tank_mode() {
   return IBus.readChannel(4) > CENTER_FORBACK_PULSE_LENGTH;
 }
 
+// Returns true if the accel correction factor save button is pushed
+bool rc_get_accel_save() {
+  return IBus.readChannel(5) > CENTER_FORBACK_PULSE_LENGTH;
+}
+
 int rc_get_spin_dir() {
   return (IBus.readChannel(6) > CENTER_FORBACK_PULSE_LENGTH) ? 1 : -1;
 }
