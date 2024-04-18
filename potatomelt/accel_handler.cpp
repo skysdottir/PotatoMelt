@@ -101,7 +101,7 @@ float get_correction_factor(float rpm) {
 
   // otherwise, lirp. i points at the first value higher than rpm, so we're lirping between [i-2] and [i]
   float fac = (rpm - correction_lookup_table[i-2])/(correction_lookup_table[i]-correction_lookup_table[i-2]);
-  return correction_lookup_table[i-1] + fac * (correction_lookup_table[i+1]-correction_lookup_table[i-1]);
+  return correction_lookup_table[i-1] + (fac * (correction_lookup_table[i+1]-correction_lookup_table[i-1]));
 }
 
 // Set the correction factor for a specified RPM to the lookup table

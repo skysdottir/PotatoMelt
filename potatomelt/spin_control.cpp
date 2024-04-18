@@ -107,15 +107,19 @@ static void get_rotation_interval_us(melty_parameters_t *melty_parameters) {
   
   float rpm = get_uncorrected_rpm();
 
+  // Controlling the PID from the raw, uncorrected RPM
+  // Because I don't trust my correction factor code yet
+  // And while this means my throttle won't track perfectly to RPM
+  // It also means bugs are gonna cause weird LED spin behavior rather than weird spin behavior
+  pid_current_rpm = rpm;
+
   if (get_config_mode()) {
     rpm = rpm + rpm * local_accel_correction_factor;
   } else {
     rpm = rpm + rpm * get_correction_factor(rpm);
   }
 
-  pid_current_rpm = rpm;
-
-  if (pid_current_rpm > highest_rpm || highest_rpm == 0) highest_rpm = pid_current_rpm;
+  if (rpm > highest_rpm || highest_rpm == 0) highest_rpm = rpm;
 
   // And apply steering correction
   //don't adjust steering if disabled by config mode - or we are in RC deadzone
