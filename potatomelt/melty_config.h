@@ -41,8 +41,8 @@
 //-----------PID tuning--------------
 // Tuning PIDs is an art. See: https://pidexplained.com/how-to-tune-a-pid-controller/
 
-#define PID_KP 1.0                                  // Proportional Gain - higher values give more sensitivity, lower values give more stability
-#define PID_KI 0.4                                  // Integral - damping on the rebound curves. Lower values = slower to respond, but less bounces
+#define PID_KP 0.4                                  // Proportional Gain - higher values give more sensitivity, lower values give more stability
+#define PID_KI 0.1                                  // Integral - damping on the rebound curves. Lower values = slower to respond, but less bounces
 #define PID_KD 0.0                                  // Derivative - useful to prevent overshoot of target value.
 
 //------------TRANSLATIONAL DRIFT SETTINGS-----------
