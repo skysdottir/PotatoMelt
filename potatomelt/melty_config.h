@@ -29,7 +29,7 @@
                                                   //Just enterring and exiting config mode will automatically set this value / save to EEPROM (based on current accel reading reflecting 0g)
                                                   //For small-radius bots - try changing to H3LIS331 to +/-200g range for improved accuracy (accel_handler.h)
 
-#define ACCEL_NONLINEAR_CORRECTION_FACTOR 0.0005f // An exponential factor for the acceleration -> rpm mapping - the H3LIS331 isn't always linear
+#define ACCEL_NONLINEAR_CORRECTION_FACTOR 0.0004f // An exponential factor for the acceleration -> rpm mapping - the H3LIS331 isn't always linear
                                                   // A small positive factor will help if your bot's tracking falls behind at higher RPMs (the accelerometer is lagging behind, so give more G per G)
                                                   // and a small negative factor will help if your bot's tracking advances at higher RPMs (the accelerometer is over-measuring, so give less G per G)
 
@@ -41,8 +41,8 @@
 //-----------PID tuning--------------
 // Tuning PIDs is an art. See: https://pidexplained.com/how-to-tune-a-pid-controller/
 
-#define PID_KP 0.4                                  // Proportional Gain - higher values give more sensitivity, lower values give more stability
-#define PID_KI 0.1                                  // Integral - damping on the rebound curves. Lower values = slower to respond, but less bounces
+#define PID_KP 1.0                                  // Proportional Gain - higher values give more sensitivity, lower values give more stability
+#define PID_KI 0.4                                  // Integral - damping on the rebound curves. Lower values = slower to respond, but less bounces
 #define PID_KD 0.0                                  // Derivative - useful to prevent overshoot of target value.
 
 //------------TRANSLATIONAL DRIFT SETTINGS-----------
