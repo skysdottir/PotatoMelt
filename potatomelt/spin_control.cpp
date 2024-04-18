@@ -13,7 +13,7 @@
 #include <PID_v1.h>
 
 #define ACCEL_MOUNT_RADIUS_MINIMUM_CM 0.2                 //Never allow interactive config to set below this value
-#define LEFT_RIGHT_CONFIG_RADIUS_ADJUST_DIVISOR 50.0f     //How quick accel. radius is adjusted in config mode (larger values = slower)
+#define LEFT_RIGHT_CONFIG_RADIUS_ADJUST_DIVISOR 100.0f     //How quick accel. radius is adjusted in config mode (larger values = slower)
 #define LEFT_RIGHT_CONFIG_LED_ADJUST_DIVISOR 0.2f         //How quick LED heading is adjusted in config mode (larger values = slower)
 
 #define MAX_TRANSLATION_ROTATION_INTERVAL_US (1.0f / MIN_TRANSLATION_RPM) * 60 * 1000 * 1000
@@ -24,7 +24,7 @@ static float led_offset_percent = DEFAULT_LED_OFFSET_PERCENT;         //stored i
 static unsigned int highest_rpm = 0;
 static bool config_mode = false;   //1 if we are in config mode
 
-static float local_accel_correction_factor = 1.0; // In config mode, instead of using the accelerometer's correction factor, use ours (so we can save it)
+static float local_accel_correction_factor = 0.0; // In config mode, instead of using the accelerometer's correction factor, use ours (so we can save it)
 
 // Variables for the PID - it doesn't take args directly, just gets pointers to these
 double pid_current_rpm = 0.0; // Input to the PID: The current RPM
@@ -110,7 +110,7 @@ static void get_rotation_interval_us(melty_parameters_t *melty_parameters) {
   // Controlling the PID from the raw, uncorrected RPM
   // Because I don't trust my correction factor code yet
   // And while this means my throttle won't track perfectly to RPM
-  // It also means bugs are gonna cause weird LED spin behavior rather than weird spin behavior
+  // It also means bugs are gonna cause weird LED behavior rather than weird spin behavior
   pid_current_rpm = rpm;
 
   if (get_config_mode()) {
@@ -124,29 +124,17 @@ static void get_rotation_interval_us(melty_parameters_t *melty_parameters) {
   // And apply steering correction
   //don't adjust steering if disabled by config mode - or we are in RC deadzone
   if (melty_parameters->translation_enabled == 1 && rc_get_is_lr_in_normal_deadzone() == false) {
+    // Adjustment factor is negative for left turns and positive for right turns
     float rpm_adjustment_factor = (float)(rc_get_leftright() / (float)NOMINAL_PULSE_RANGE) / LEFT_RIGHT_HEADING_CONTROL_DIVISOR;
-    rpm = rpm + (rpm * rpm_adjustment_factor);
+
+    // therefore, we need to subtract it here, so left turns = higher effective RPM
+    rpm = rpm - (rpm * rpm_adjustment_factor);
   }
 
   // How fast it'll take us to spin if we don't accelerate or decelerate
   unsigned long instant_rotation_interval = (1.0f / rpm) * 60 * 1000 * 1000;
 
-#ifdef USE_LINEAR_ESTIMATION_FOR_ROTATION_TIME
-  if (last_rotation_instant_time == 0) {
-    last_rotation_instant_time = instant_rotation_interval;
-  }
-
-  // And now some linear estimation. We know our previous instantaneous rotation rate, we know our current instantaneous rotation rate,
-  // which means we can gueess our next instantaneous rotation rate linearily, with next = current + (current-previous)
-  // But we want average rotation rate instead, which is to say, (current+next)/2
-  // Algebra them together and you get...
-  unsigned long predicted_rotation_rate = (3*instant_rotation_interval - last_rotation_instant_time)/2;
-
-  last_rotation_instant_time = instant_rotation_interval;
-  melty_parameters->rotation_interval_us = predicted_rotation_rate;
-#else
   melty_parameters->rotation_interval_us = instant_rotation_interval;
-#endif
 }
 
 //performs changes to melty parameters when in config mode
@@ -166,9 +154,11 @@ static struct melty_parameters_t handle_config_mode(melty_parameters_t *melty_pa
       //show that we are changing config
       melty_parameters->led_shimmer = 1;
 
+      // control left = we're spinning too slow, and need to speed up to match the LED behavior
       float adjustment_factor = (float)(rc_get_leftright() / (float)NOMINAL_PULSE_RANGE) / LEFT_RIGHT_CONFIG_RADIUS_ADJUST_DIVISOR;
       
-      local_accel_correction_factor += adjustment_factor;
+      // Need to spin up on a negative adjustment factor, not down
+      local_accel_correction_factor -= adjustment_factor;
     }    
   }
   

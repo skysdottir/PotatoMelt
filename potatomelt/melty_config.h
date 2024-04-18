@@ -21,7 +21,7 @@
 //----------SPIN CONTROL SETTINGS----------
 //"DEFAULT" values are overriden by interactive config / stored in EEPROM (interactive config will be easier if they are about correct)
 //To force these values to take effect after interactive config - increment EEPROM_WRITTEN_SENTINEL_VALUE
-#define DEFAULT_ACCEL_MOUNT_RADIUS_CM 2.50         //Radius of accelerometer from center of robot
+#define DEFAULT_ACCEL_MOUNT_RADIUS_CM 2.91         //Radius of accelerometer from center of robot
 #define DEFAULT_LED_OFFSET_PERCENT 57              //Adjust to make heading LED line up with direction robot travels 0-99 (increasing moves beacon clockwise)
                                                    
 #define DEFAULT_ACCEL_ZERO_G_OFFSET 0.0f          //Value accelerometer returns with robot at rest (in G) - adjusts for any offset
@@ -29,10 +29,8 @@
                                                   //Just enterring and exiting config mode will automatically set this value / save to EEPROM (based on current accel reading reflecting 0g)
                                                   //For small-radius bots - try changing to H3LIS331 to +/-200g range for improved accuracy (accel_handler.h)
 
-#define MAX_TARGET_RPM 2400.0                     // How fast 100% throttle should target spinning - this can be above the accelerometer's peak loading, but is not recommended
+#define MAX_TARGET_RPM 3000.0                     // How fast 100% throttle should target spinning - this can be above the accelerometer's peak loading, but is not recommended
                                                   // Really, 2k rpm is plenty for most work
-
-// #define USE_LINEAR_ESTIMATION_FOR_ROTATION_TIME   // Linear estimation of rotation time can give better tracking when accelerating or decelerating
 
 //-----------PID tuning--------------
 // Tuning PIDs is an art. See: https://pidexplained.com/how-to-tune-a-pid-controller/

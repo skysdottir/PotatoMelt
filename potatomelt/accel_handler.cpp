@@ -100,6 +100,12 @@ float get_correction_factor(float rpm) {
   }
 
   // otherwise, lirp. i points at the first value higher than rpm, so we're lirping between [i-2] and [i]
+
+  // If we happen to have two points at exactly the same value, don't div/0
+  if(correction_lookup_table[i-2]==correction_lookup_table[i]) {
+    return correction_lookup_table[i-1];
+  }
+
   float fac = (rpm - correction_lookup_table[i-2])/(correction_lookup_table[i]-correction_lookup_table[i-2]);
   return correction_lookup_table[i-1] + (fac * (correction_lookup_table[i+1]-correction_lookup_table[i-1]));
 }
