@@ -154,6 +154,15 @@ void evict_record() {
   ring_buffer_position += 2;
 }
 
+void clear_correction_table() {
+  for(int i = 0; i < 16; i++) {
+    correction_lookup_table[i] = 0;
+  }
+
+  correction_table_length=0;
+  ring_buffer_position = 0;
+}
+
 // Sort the lookup table and store it in EEPROM for future use
 void save_parameters() {
   save_accel_zero_g_offset(accel_zero_g_offset);

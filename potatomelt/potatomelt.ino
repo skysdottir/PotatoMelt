@@ -146,6 +146,16 @@ static void check_config_mode() {
   }    
 }
 
+static void check_accel_config_clear()
+{
+  if (get_config_mode() && rc_get_accel_save()) {
+    delay(750);
+    if (rc_get_accel_save()) {
+      clear_correction_table();
+    }
+  }
+}
+
 //handles the bot when not spinning (with RC good)
 static void handle_bot_idle() {
 
@@ -163,6 +173,7 @@ static void handle_bot_idle() {
     }
 
     check_config_mode();          //check if user requests we enter / exit config mode
+    check_accel_config_clear();
     display_rpm_if_requested();   //flashed out RPM if user has requested
 
     echo_diagnostics();           //echo diagnostics if bot is idle

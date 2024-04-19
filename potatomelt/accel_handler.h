@@ -27,6 +27,9 @@ float get_correction_factor(float rpm);
 // Set the correction factor for a specified RPM to the lookup table
 void set_correction_factor(float rpm, float correction_factor);
 
+// Blank the correction table for reconfiguration
+void clear_correction_table();
+
 // If the lookup table is full, evict existing entries one by one
 void evict_record();
 
