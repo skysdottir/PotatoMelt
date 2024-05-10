@@ -89,8 +89,12 @@ int rc_get_spin_dir() {
 }
 
 float rc_get_trans_trim() {
-  int trim_setting = IBus.readChannel(RC_CHANNEL_TRANSLATE_TRIM) - MIN_RC_PULSE_LENGTH;
+  #ifdef USE_TRANSLATION_TRIM
+  int trim_setting = IBus.readChannel(RC_CHANNEL_TRANSLATION_TRIM) - MIN_RC_PULSE_LENGTH;
   return trim_setting * 16 / NOMINAL_PULSE_RANGE;
+  #else
+  return DEFAULT_TRANSLATION_TRIM;
+  #endif
 }
 
 //attach interrupts to rc pins

@@ -52,7 +52,9 @@ float rc_get_trans_trim();
 #define RC_CHANNEL_TANKMODE 4               // Tank mode switch - usually a switch, <0 for melty mode, >0 for tank mode
 #define RC_CHANNEL_ACCEL_OFFSET_SAVE 5      // Button for saving an accelerometer offset in config mode - <0 normally, >0 when pressed
 #define RC_CHANNEL_SPIN_DIR 6               // Spin direction switch - runs motors forwards when >0, backwards when <0. Does not adjust heading LED offsets - useful when ESCs are wired backwards
-#define RC_CHANNEL_TRANSLATE_TRIM 7         // Translate power trim - Usually a knob, more trim = robot will try harder to translate while spinning.
+#define RC_CHANNEL_TRANSLATION_TRIM 7         // Translate power trim - Usually a knob, more trim = robot will try harder to translate while spinning.
+
+#define DEFAULT_TRANSLATION_TRIM 2.0;         // The default translation trim, if the feature is disabled in melty_config.h
 
 //All pulse lengths in microseconds
 //it's accepted that a TX with fully centered trims may produce values somewhat off these numbers
