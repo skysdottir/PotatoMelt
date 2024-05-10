@@ -39,6 +39,21 @@ bool rc_get_tank_mode();
 // returns true if the accelerometer correction save button is pushed
 bool rc_get_accel_save();
 
+// Returns (1, 16) for translation trim - adjusts how hard the bot tries to translate
+float rc_get_trans_trim();
+
+// Channel assignments
+// Note that the first channel is 0 in Ibus.cpp, while most controllers start at channel 1
+// So channel 0 here is channel 1 on the controller, and so on
+#define RC_CHANNEL_TURN 0                   // Logical turning - usually left-right on the right stick
+#define RC_CHANNEL_FORBACK 1                // Translate forwards or backwards - usually forwards-backwards on the right stick
+#define RC_CHANNEL_THROTTLE 2               // Spin RPM - usually forwards-backwards on the left stick
+// reserved                                 // RC channel 3 is reserved for sideways translation
+#define RC_CHANNEL_TANKMODE 4               // Tank mode switch - usually a switch, <0 for melty mode, >0 for tank mode
+#define RC_CHANNEL_ACCEL_OFFSET_SAVE 5      // Button for saving an accelerometer offset in config mode - <0 normally, >0 when pressed
+#define RC_CHANNEL_SPIN_DIR 6               // Spin direction switch - runs motors forwards when >0, backwards when <0. Does not adjust heading LED offsets - useful when ESCs are wired backwards
+#define RC_CHANNEL_TRANSLATE_TRIM 7         // Translate power trim - Usually a knob, more trim = robot will try harder to translate while spinning.
+
 //All pulse lengths in microseconds
 //it's accepted that a TX with fully centered trims may produce values somewhat off these numbers
 
@@ -60,5 +75,3 @@ bool rc_get_accel_save();
 
 #define LR_CONFIG_MODE_DEADZONE_WIDTH 100         //deadzone for LR when in config mode (in US) - prevents unintended tracking adjustments
 #define LR_NORMAL_DEADZONE_WIDTH 25               //deadzone for normal drive - can help with unintentional drift when moving forward / back
-
-#define MAX_MS_BETWEEN_RC_UPDATES 900             //if we don't get a valid RC update on the throttle at least this often - spin down

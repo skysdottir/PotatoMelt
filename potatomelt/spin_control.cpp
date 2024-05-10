@@ -10,7 +10,10 @@
 #include "config_storage.h"
 #include "led_driver.h"
 #include "battery_monitor.h"
+
+#ifdef USE_PID_THROTTLE_CONTROL
 #include <PID_v1.h>
+#endif
 
 #define ACCEL_MOUNT_RADIUS_MINIMUM_CM 0.2                 //Never allow interactive config to set below this value
 #define LEFT_RIGHT_CONFIG_RADIUS_ADJUST_DIVISOR 100.0f     //How quick accel. radius is adjusted in config mode (larger values = slower)
@@ -31,8 +34,10 @@ double pid_current_rpm = 0.0; // Input to the PID: The current RPM
 double pid_target_rpm = 0.0;  // Setpoint for the PID: The target RPM
 double pid_throttle_output = 0.0; // Output from the PID: How hard to run the throttle
 
+#ifdef USE_PID_THROTTLE_CONTROL
 // We're using a PID to control motor power, to chase a RPM set by the throttle channel
 PID throttle_pid(&pid_current_rpm, &pid_throttle_output, &pid_target_rpm, PID_KP, PID_KI, PID_KD, P_ON_E, DIRECT);
+#endif
 
 //-initial- assignment of melty parameters
 melty_parameters_t melty_parameters;
@@ -61,11 +66,14 @@ void init_spin_timer() {
   sei(); // allow interrupts
 }
 
+
 void init_pid() {
+  #ifdef USE_PID_THROTTLE_CONTROL
   throttle_pid.SetOutputLimits(0.0, 1023.0);
   
   // Iterate once every 20ms - high-speed PID, yay
   throttle_pid.SetSampleTime(20);
+  #endif
 }
 
 //loads settings from EEPROM
@@ -250,15 +258,22 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   melty_parameters->motor_start_phase_2 = melty_parameters->rotation_interval_us / 2;
 
   int translate_disp = rc_get_forback_trans();
+
+  #ifdef USE_PID_THROTTLE_CONTROL
   pid_target_rpm = MAX_TARGET_RPM * rc_get_throttle_perk() / 1024.0;
-  
   throttle_pid.Compute();
+  double throttle_perk = pid_throttle_output;
+  #else
+  double throttle_perk = rc_get_throttle_perk();
+  #endif
 
   // translation control!
   // Because there's a lot of math here, we're going to compute the actual dshot commands once
   // So then in the hot loop we can just spam the known codes
-  int throttle_high_perk = min(pid_throttle_output + (melty_parameters->translation_enabled * translate_disp * pid_throttle_output / 512), 1023);
-  int throttle_low_perk = max(pid_throttle_output - (melty_parameters->translation_enabled * translate_disp * pid_throttle_output / 512), 0);
+  float trans_trim = rc_get_trans_trim();
+
+  int throttle_high_perk = min(throttle_perk + (melty_parameters->translation_enabled * translate_disp * throttle_perk * trans_trim / 1024), 1023);
+  int throttle_low_perk = max(throttle_perk - (melty_parameters->translation_enabled * translate_disp * throttle_perk * trans_trim / 1024), 0);
 
   int motor_dir = rc_get_spin_dir();
 
@@ -295,8 +310,10 @@ static void update_heading_led(struct melty_parameters_t melty_parameters, unsig
 
 // Cut the motors!
 void disable_spin() {
+  #ifdef USE_PID_THROTTLE_CONTROL
   // Stop the PID
   throttle_pid.SetMode(MANUAL);
+  #endif
 
   // Stop the motors
   motors_off();
@@ -305,8 +322,10 @@ void disable_spin() {
 
 void enable_spin() {
   if (!melty_parameters.spin_enabled) {
+    #ifdef USE_PID_THROTTLE_CONTROL
     // Start the PID
     throttle_pid.SetMode(AUTOMATIC);
+    #endif
 
     // and start the clock
     start_time = micros();
