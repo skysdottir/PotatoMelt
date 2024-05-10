@@ -3,7 +3,7 @@
 
 #define ENABLE_WATCHDOG
 
-//See melty_config.h for configuration parameters
+// See melty_config.h for configuration parameters
 
 #include "rc_handler.h"
 #include "melty_config.h"
@@ -28,45 +28,45 @@ void service_watchdog() {
 #endif
 }
 
-//loops until a good RC signal is detected and throttle is zero (assures safe start)
+// loops until a good RC signal is detected and throttle is zero (assures safe start)
 static void wait_for_rc_good_and_zero_throttle() {
     while (rc_signal_is_healthy() == false || rc_get_throttle_perk() > 0) {
       disable_spin();
 
-      //"slow on/off" for LED while waiting for signal
+      // "slow on/off" for LED while waiting for signal
       heading_led_on(0); delay(250);
       heading_led_off(); delay(250);
       
-      //services watchdog and echo diagnostics while we are waiting for RC signal
+      // services watchdog and echo diagnostics while we are waiting for RC signal
       service_watchdog();
       echo_diagnostics();
   }
 }
   
 
-//Arduino initial setup function
+// Arduino initial setup function
 void setup() {
   
   Serial.begin(115200);
 
-  //get motor drivers setup (and off!) first thing
+  // get motor drivers setup (and off!) first thing
   init_motors();
   init_led();
 
 #ifdef ENABLE_WATCHDOG
-  //returns actual watchdog timeout MS
+  // returns actual watchdog timeout MS
   int watchdog_ms = Watchdog.enable(WATCH_DOG_TIMEOUT_MS);
 #endif
 
   init_rc();
-  init_accel();   //accelerometer uses i2c - which can fail blocking (so only initializing it -after- the watchdog is running)
+  init_accel();   // accelerometer uses i2c - which can fail blocking (so only initializing it -after- the watchdog is running)
   
-//load settings on boot
+// load settings on boot
 #ifdef ENABLE_EEPROM_STORAGE  
   load_melty_config_settings();
 #endif
 
-//if JUST_DO_DIAGNOSTIC_LOOP - then we just loop and display debug info via USB (good for testing)
+// if JUST_DO_DIAGNOSTIC_LOOP - then we just loop and display debug info via USB (good for testing)
 #ifdef JUST_DO_DIAGNOSTIC_LOOP
   while (1) {
     disable_spin();
@@ -89,7 +89,7 @@ init_spin_timer();
 
 }
 
-//dumps out diagnostics info
+// dumps out diagnostics info
 static void echo_diagnostics() {
 
   Serial.print("Raw Accel G: "); Serial.print(get_accel_force_g());
@@ -110,35 +110,35 @@ static void echo_diagnostics() {
 
 }
 
-//Used to flash out max recorded RPM 100's of RPMs
+// Used to flash out max recorded RPM 100's of RPMs
 static void display_rpm_if_requested() {
-  //triggered by user pushing throttle up while bot is at idle for 750ms
+  // triggered by user pushing throttle up while bot is at idle for 750ms
   if (rc_get_forback_bit() == RC_FORBACK_FORWARD) {
     delay(750);
-     //verify throttle at zero to prevent accidental entry into RPM flash
+     // verify throttle at zero to prevent accidental entry into RPM flash
     if (rc_get_forback_bit() == RC_FORBACK_FORWARD && rc_get_throttle_perk() == 0) {
        
-      //throttle up cancels RPM count
+      // throttle up cancels RPM count
       for (int x = 0; x < get_max_rpm() && rc_get_throttle_perk() == 0; x = x + 100) {
-        service_watchdog();   //flashing out RPM can take a while - need to assure watchdog doesn't trigger
+        service_watchdog();   // flashing out RPM can take a while - need to assure watchdog doesn't trigger
         delay(600); heading_led_on(0);
         delay(20); heading_led_off();
       }
-      delay(1500);  //flash-out punctuated with delay to make clear RPM count has completed
+      delay(1500);  // flash-out punctuated with delay to make clear RPM count has completed
     }
   }
 }
 
-//checks if user has requested to enter / exit config mode
+// checks if user has requested to enter / exit config mode
 static void check_config_mode() {
-  //if user pulls control stick back for 750ms - enters (or exits) interactive configuration mode
+  // if user pulls control stick back for 750ms - enters (or exits) interactive configuration mode
   if (rc_get_forback_bit() == RC_FORBACK_BACKWARD) {
     delay(750);
     if (rc_get_forback_bit() == RC_FORBACK_BACKWARD) {
       toggle_config_mode(); 
-      if (get_config_mode() == false) save_melty_config_settings();    //save melty settings on config mode exit
+      if (get_config_mode() == false) save_melty_config_settings();    // save melty settings on config mode exit
       
-      //wait for user to release stick - so we don't re-toggle modes
+      // wait for user to release stick - so we don't re-toggle modes
       while (rc_get_forback_bit() == RC_FORBACK_BACKWARD) {
         service_watchdog();
       }
@@ -156,27 +156,27 @@ static void check_accel_config_clear()
   }
 }
 
-//handles the bot when not spinning (with RC good)
+// handles the bot when not spinning (with RC good)
 static void handle_bot_idle() {
 
-    disable_spin();              //assure motors are off
+    disable_spin();              // assure motors are off
     
-    //normal LED "fast flash" - indicates RC signal is good while sitting idle
+    // normal LED "fast flash" - indicates RC signal is good while sitting idle
     heading_led_on(0); delay(30);
     heading_led_off(); delay(120);
 
-    //if in config mode blip LED again to show "double-flash" 
+    // if in config mode blip LED again to show "double-flash" 
     if (get_config_mode() == true) {
       heading_led_off(); delay(400);
       heading_led_on(0); delay(30);
       heading_led_off(); delay(140);
     }
 
-    check_config_mode();          //check if user requests we enter / exit config mode
+    check_config_mode();          // check if user requests we enter / exit config mode
     check_accel_config_clear();
-    display_rpm_if_requested();   //flashed out RPM if user has requested
+    display_rpm_if_requested();   // flashed out RPM if user has requested
 
-    echo_diagnostics();           //echo diagnostics if bot is idle
+    echo_diagnostics();           // echo diagnostics if bot is idle
 }
 
 static void handle_battery_crit() {
@@ -196,10 +196,11 @@ static void handle_battery_crit() {
     echo_diagnostics();
 }
 
-//main control loop
+// main control loop
 void loop() {
 
-  service_watchdog();             //keep the watchdog happy
+  // keep the watchdog happy
+  service_watchdog();
 
   #ifdef BATTERY_CRIT_HALT_ENABLED
   if(battery_voltage_crit())
@@ -209,15 +210,15 @@ void loop() {
   }
   #endif
 
-  //if the rc signal isn't good - assure motors off - and "slow flash" LED
-  //this will interrupt a spun-up bot if the signal becomes bad
+  // if the rc signal isn't good - assure motors off - and "slow flash" LED
+  // this will interrupt a spun-up bot if the signal becomes bad
   if (rc_signal_is_healthy() == false) {
     disable_spin();
     
     heading_led_on(0); delay(30);
     heading_led_off(); delay(600);
     
-    //echo diagnostics while we are waiting for RC signal
+    // echo diagnostics while we are waiting for RC signal
     echo_diagnostics();
 
     // And then bail
@@ -233,9 +234,9 @@ void loop() {
   }
   #endif
 
-  //if RC is good - and throtte is above 0 - spin a single rotation
+  // if RC is good - and throtte is above 0 - spin a single rotation
  if (rc_get_throttle_perk() > 0) {
-    //this is where all the motor control happens!  (see spin_control.cpp)
+    // this is where all the motor control happens!  (see spin_control.cpp)
     enable_spin();
     spin_one_iteration();  
   } else {    

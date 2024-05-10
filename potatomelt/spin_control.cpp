@@ -15,17 +15,17 @@
 #include <PID_v1.h>
 #endif
 
-#define ACCEL_MOUNT_RADIUS_MINIMUM_CM 0.2                 //Never allow interactive config to set below this value
-#define LEFT_RIGHT_CONFIG_RADIUS_ADJUST_DIVISOR 100.0f     //How quick accel. radius is adjusted in config mode (larger values = slower)
-#define LEFT_RIGHT_CONFIG_LED_ADJUST_DIVISOR 0.2f         //How quick LED heading is adjusted in config mode (larger values = slower)
+#define ACCEL_MOUNT_RADIUS_MINIMUM_CM 0.2                 // Never allow interactive config to set below this value
+#define LEFT_RIGHT_CONFIG_RADIUS_ADJUST_DIVISOR 100.0f    // How quick accel. radius is adjusted in config mode (larger values = slower)
+#define LEFT_RIGHT_CONFIG_LED_ADJUST_DIVISOR 0.2f         // How quick LED heading is adjusted in config mode (larger values = slower)
 
 #define MAX_TRANSLATION_ROTATION_INTERVAL_US (1.0f / MIN_TRANSLATION_RPM) * 60 * 1000 * 1000
-#define MAX_TRACKING_ROTATION_INTERVAL_US MAX_TRANSLATION_ROTATION_INTERVAL_US * 2   //don't track heading if we are this slow (also puts upper limit on time spent in melty loop for safety)
+#define MAX_TRACKING_ROTATION_INTERVAL_US MAX_TRANSLATION_ROTATION_INTERVAL_US * 2   // don't track heading if we are this slow (also puts upper limit on time spent in melty loop for safety)
 
-static float led_offset_percent = DEFAULT_LED_OFFSET_PERCENT;         //stored in EEPROM as an INT - but handled as a float for configuration purposes
+static float led_offset_percent = DEFAULT_LED_OFFSET_PERCENT;         // stored in EEPROM as an INT - but handled as a float for configuration purposes
 
 static unsigned int highest_rpm = 0;
-static bool config_mode = false;   //1 if we are in config mode
+static bool config_mode = false;   // true if we are in config mode
 
 static float local_accel_correction_factor = 0.0; // In config mode, instead of using the accelerometer's correction factor, use ours (so we can save it)
 
@@ -76,14 +76,14 @@ void init_pid() {
   #endif
 }
 
-//loads settings from EEPROM
+// loads settings from EEPROM
 void load_melty_config_settings() {
 #ifdef ENABLE_EEPROM_STORAGE 
   led_offset_percent = load_heading_led_offset();
 #endif  
 }
 
-//saves settings to EEPROM
+// saves settings to EEPROM
 void save_melty_config_settings() {
 #ifdef ENABLE_EEPROM_STORAGE 
   save_heading_led_offset(led_offset_percent);
@@ -93,10 +93,10 @@ void save_melty_config_settings() {
 void toggle_config_mode() {
   config_mode = !config_mode;
 
-  //on entering config mode - update the zero g offset
+  // on entering config mode - update the zero g offset
   if (config_mode) set_accel_zero_offset();
   
-  //enterring or exiting config mode also resets highest observed RPM
+  // enterring or exiting config mode also resets highest observed RPM
   highest_rpm = 0;
 }
 
@@ -108,9 +108,9 @@ int get_max_rpm() {
   return highest_rpm;
 }
 
-//calculates time for this rotation of robot
-//robot is steered by increasing / decreasing rotation by factor relative to RC left / right position
-//ie - reducing rotation time estimate below actual results in shift of heading opposite the direction of rotation
+// calculates time for this rotation of robot
+// robot is steered by increasing / decreasing rotation by factor relative to RC left / right position
+// ie - reducing rotation time estimate below actual results in shift of heading opposite the direction of rotation
 static void get_rotation_interval_us(melty_parameters_t *melty_parameters) {
   
   float rpm = get_uncorrected_rpm();
@@ -130,7 +130,7 @@ static void get_rotation_interval_us(melty_parameters_t *melty_parameters) {
   if (rpm > highest_rpm || highest_rpm == 0) highest_rpm = rpm;
 
   // And apply steering correction
-  //don't adjust steering if disabled by config mode - or we are in RC deadzone
+  // don't adjust steering if disabled by config mode - or we are in RC deadzone
   if (melty_parameters->translation_enabled == 1 && rc_get_is_lr_in_normal_deadzone() == false) {
     // Adjustment factor is negative for left turns and positive for right turns
     float rpm_adjustment_factor = (float)(rc_get_leftright() / (float)NOMINAL_PULSE_RANGE) / LEFT_RIGHT_HEADING_CONTROL_DIVISOR;
@@ -145,21 +145,21 @@ static void get_rotation_interval_us(melty_parameters_t *melty_parameters) {
   melty_parameters->rotation_interval_us = instant_rotation_interval;
 }
 
-//performs changes to melty parameters when in config mode
+// performs changes to melty parameters when in config mode
 static struct melty_parameters_t handle_config_mode(melty_parameters_t *melty_parameters) {
 
   int forback = rc_get_forback_bit();
-  //if forback forward - normal drive (for driver testing - no adjustment of melty parameters)
+  // if forback forward - normal drive (for driver testing - no adjustment of melty parameters)
 
-  //if forback neutral - then do radius adjustment
+  // if forback neutral - then do radius adjustment
   if (forback == RC_FORBACK_NEUTRAL) {
 
-    //radius adjustment overrides steering
+    // radius adjustment overrides steering
     melty_parameters->translation_enabled = 0;
 
-    //only adjust if stick is outside deadzone    
+    // only adjust if stick is outside deadzone    
     if (rc_get_is_lr_in_config_deadzone() == false) {
-      //show that we are changing config
+      // show that we are changing config
       melty_parameters->led_shimmer = 1;
 
       // control left = we're spinning too slow, and need to speed up to match the LED behavior
@@ -170,15 +170,15 @@ static struct melty_parameters_t handle_config_mode(melty_parameters_t *melty_pa
     }    
   }
   
-  //if forback backward - do LED heading adjustment (don't translate)
+  // if forback backward - do LED heading adjustment (don't translate)
   if (forback == RC_FORBACK_BACKWARD) {
     //LED heading offset adjustment disables movement
     melty_parameters->translation_enabled = 0;
     
-    //only adjust if stick is outside deadzone  
+    // only adjust if stick is outside deadzone  
     if (rc_get_is_lr_in_config_deadzone() == false) {
 
-      //show that we are changing config
+      // show that we are changing config
       melty_parameters->led_shimmer = 1;
 
       float adjustment_factor =  (float)(rc_get_leftright() / (float)NOMINAL_PULSE_RANGE);
@@ -192,12 +192,12 @@ static struct melty_parameters_t handle_config_mode(melty_parameters_t *melty_pa
   }
 }
 
-//Calculates all parameters need for a single rotation (motor timing, LED timing, etc.)
-//This entire section takes ~1300us on an Atmega32u4
-//Which means it will be interrupted by the hot loop multiple times
-//Fortunately, once the bot is spinning, it spins fast enough that no human is going to move the controls significantly in a single loop
-//So, partially stale data for one update isn't going to break anything
-//Todo: Rethink this assumption when we get into omnidirectional maneuvering, because then there'll be a pole right in the middle of the deadzone
+// Calculates all parameters need for a single rotation (motor timing, LED timing, etc.)
+// This entire section takes ~1300us on an Atmega32u4
+// Which means it will be interrupted by the hot loop multiple times
+// Fortunately, once the bot is spinning, it spins fast enough that no human is going to move the controls significantly in a single loop
+// So, partially stale data for one update isn't going to break anything
+// Todo: Rethink this assumption when we get into omnidirectional maneuvering, because then there'll be a pole right in the middle of the deadzone
 static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   // set some of the defaults
   melty_parameters->led_shimmer = 0;
@@ -205,7 +205,7 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
 
   float led_offset_portion = led_offset_percent / 100.0f;
 
-  //if we are in config mode - handle it (and disable steering if needed)
+  // if we are in config mode - handle it (and disable steering if needed)
   if (get_config_mode() == true) {
     handle_config_mode(melty_parameters);
   }
@@ -228,12 +228,12 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
     }
   }
 
-  //if we are too slow - don't even try to track heading
+  // if we are too slow - don't even try to track heading
   if (melty_parameters->rotation_interval_us > MAX_TRACKING_ROTATION_INTERVAL_US) {
     melty_parameters->rotation_interval_us = MAX_TRACKING_ROTATION_INTERVAL_US;
   }
 
-  //LED width changes with RPM - Totally spitballing ratios here
+  // LED width changes with RPM
   float led_on_portion = pid_current_rpm / MAX_TARGET_RPM;  
   if (led_on_portion < 0.10f) led_on_portion = 0.10f;
   if (led_on_portion > 0.90f) led_on_portion = 0.90f;
@@ -241,7 +241,7 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   unsigned long led_on_us = led_on_portion * melty_parameters->rotation_interval_us;
   unsigned long led_offset_us = led_offset_portion * melty_parameters->rotation_interval_us;
 
-  //starts LED on time at point in rotation so it's "centered" on led offset
+  // starts LED on time at point in rotation so it's "centered" on led offset
   melty_parameters->led_start = led_offset_us - (led_on_us / 2);
   if (melty_parameters->led_start < 0) {
     melty_parameters->led_start += melty_parameters->rotation_interval_us;
@@ -283,14 +283,14 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   melty_parameters->throttle_high_dshot = perk2dshot(throttle_high_perk);
   melty_parameters->throttle_low_dshot = perk2dshot(throttle_low_perk);
 
-  //if the battery voltage is low - shimmer the LED to let user know
+  // if the battery voltage is low - shimmer the LED to let user know
 #ifdef BATTERY_ALERT_ENABLED
   if (battery_voltage_low() == true) melty_parameters->led_shimmer = 1;
 #endif
 
 }
 
-//turns on heading LED at appropriate timing
+// turns on heading LED at appropriate timing
 static void update_heading_led(struct melty_parameters_t melty_parameters, unsigned long time_spent_this_rotation_us) {
   if (melty_parameters.led_start > melty_parameters.led_stop) {
     // the LED will be on across 0, so each loop we're shutting it off and then turning it on
@@ -333,8 +333,8 @@ void enable_spin() {
   }
 }
 
-//rotates the robot once + handles translational drift
-//(repeat as needed)
+// rotates the robot once + handles translational drift
+// (repeat as needed)
 void spin_one_iteration(void) {
   get_melty_parameters(&melty_parameters);
   delay(20);
@@ -355,13 +355,13 @@ ISR(TIMER3_COMPA_vect) {
     start_time += melty_parameters.rotation_interval_us;
   }
 
-  //translate
+  // translate
   if (time_spent_this_rotation_us >= melty_parameters.motor_start_phase_1 && time_spent_this_rotation_us <= melty_parameters.motor_start_phase_2) {
     motors_on_direct(melty_parameters.throttle_high_dshot, melty_parameters.throttle_low_dshot);
   } else {
     motors_on_direct(melty_parameters.throttle_low_dshot, melty_parameters.throttle_high_dshot);
   }
    
-    //displays heading LED at correct location
+    // displays heading LED at correct location
     update_heading_led(melty_parameters, time_spent_this_rotation_us);
 }
