@@ -1,35 +1,35 @@
 
-// sed to return forward / back control stick position
+//used to return forward / back control stick position
 typedef enum {
-    RC_FORBACK_FORWARD = 1,     // ontrol stick pushed forward
-    RC_FORBACK_NEUTRAL = 0,     // ontrol stick neutral
-    RC_FORBACK_BACKWARD = -1     // ontrol stick held back
+    RC_FORBACK_FORWARD = 1,     //control stick pushed forward
+    RC_FORBACK_NEUTRAL = 0,     //control stick neutral
+    RC_FORBACK_BACKWARD = -1     //control stick held back
 } rc_forback;
 
 void init_rc();
 
-// eturn true if RC signal looks good
+//return true if RC signal looks good
 bool rc_signal_is_healthy();         
 
 // Compute a checksum for the current position of the sticks, to use in the previous
 unsigned long compute_checksum();
 
-// eturns (0,1023) value indicating throttle level
+//returns (0,1023) value indicating throttle level
 int rc_get_throttle_perk();
 
-// eturns (-512,512) value indicating displacement of drive stick forback
+//returns (-512,512) value indicating displacement of drive stick forback
 int rc_get_forback_trans();
 
-// eturns RC_FORBACK_FORWARD, RC_FORBACK_NEUTRAL or RC_FORBACK_BACKWARD depending on stick position
+//returns RC_FORBACK_FORWARD, RC_FORBACK_NEUTRAL or RC_FORBACK_BACKWARD depending on stick position
 rc_forback rc_get_forback_bit();
 
-// eturns (-512,512) from center value (not converted to percentage)
+//returns (-512,512) from center value (not converted to percentage)
 int rc_get_leftright();
 
 // Returns spin direction multiplier
 int rc_get_spin_dir();
 
-// hese functions return true if L/R stick movement is below defined thresholds
+//these functions return true if L/R stick movement is below defined thresholds
 bool rc_get_is_lr_in_config_deadzone();  
 bool rc_get_is_lr_in_normal_deadzone();
 

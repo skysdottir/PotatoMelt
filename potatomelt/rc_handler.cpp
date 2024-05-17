@@ -1,4 +1,4 @@
-// his module handles the RC interface (interrupt driven)
+//This module handles the RC interface (interrupt driven)
 #include <Arduino.h>
 #include <IBusBM.h>
 
@@ -24,9 +24,9 @@ bool rc_signal_is_healthy() {
   }
 }
 
-// eturns at integer from 0 to 1024 based on throttle position
-// efault values are intended to have "dead zones" at both top
-// nd bottom of stick for 0 and 1024 percent
+//returns at integer from 0 to 1024 based on throttle position
+//default values are intended to have "dead zones" at both top
+//and bottom of stick for 0 and 1024 percent
 int rc_get_throttle_perk() {
 
   int pulse_length = IBus.readChannel(RC_CHANNEL_THROTTLE);
@@ -48,7 +48,7 @@ bool rc_get_is_lr_in_normal_deadzone() {
 }
 
 
-// eturns RC_FORBACK_FORWARD, RC_FORBACK_BACKWARD or RC_FORBACK_NEUTRAL based on stick position
+//returns RC_FORBACK_FORWARD, RC_FORBACK_BACKWARD or RC_FORBACK_NEUTRAL based on stick position
 rc_forback rc_get_forback_bit() {
 
   int pulse_length = IBus.readChannel(RC_CHANNEL_FORBACK);
@@ -65,9 +65,9 @@ int rc_get_forback_trans() {
   return stick_position - CENTER_FORBACK_PULSE_LENGTH;
 }
 
-// eturns offset in microseconds from center value (not converted to percentage)
-//  for hypothetical perfect center (reality is probably +/-50)
-// eturns negative value for left / positive value for right
+//returns offset in microseconds from center value (not converted to percentage)
+//0 for hypothetical perfect center (reality is probably +/-50)
+//returns negative value for left / positive value for right
 int rc_get_leftright() {
   int pulse_length = IBus.readChannel(RC_CHANNEL_TURN);
 
@@ -97,7 +97,7 @@ float rc_get_trans_trim() {
   #endif
 }
 
-// ttach interrupts to rc pins
+//attach interrupts to rc pins
 void init_rc(void) {
   IBus.begin(Serial1);
   control_checksum = compute_checksum();
