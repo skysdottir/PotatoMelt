@@ -59,6 +59,8 @@
 
 #define BATTERY_ADC_PIN A0                        // Pin for battery monitor (if enabled)
 
+#define RESET_LOOP_TEST_PIN 8                     // Ground this sucker to skip all init steps and fast-loop. Good for programming without connecting a controller
+
 //----------BATTERY MONITOR----------
 #define BATTERY_ALERT_ENABLED                     // if enabled - heading LED will flicker when battery voltage is low
 #define BATTERY_CRIT_HALT_ENABLED                 // if enabled - robot will halt when battery voltage is critically low

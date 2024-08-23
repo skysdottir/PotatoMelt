@@ -49,6 +49,12 @@ void setup() {
   
   Serial.begin(115200);
 
+  // Zeroeth thing, test for hard reset loop jumper
+  pinMode(RESET_LOOP_TEST_PIN, INPUT_PULLUP);
+  if (digitalRead(RESET_LOOP_TEST_PIN) == 0) {
+    return;
+  }
+
   // get motor drivers setup (and off!) first thing
   init_motors();
   init_led();
@@ -201,6 +207,11 @@ void loop() {
 
   // keep the watchdog happy
   service_watchdog();
+
+  // insta-bail if the hard reset jumper is tripped
+  if (digitalRead(RESET_LOOP_TEST_PIN) == 0) {
+    return;
+  }
 
   #ifdef BATTERY_CRIT_HALT_ENABLED
   if(battery_voltage_crit())
