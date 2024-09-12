@@ -17,7 +17,7 @@ If you're spinning this up in a VS Code workspace, there's a few things you'll n
 My development hardware:
 - Adafruit Itsybitsy 32u4 16mhz 5v
 - Adafruit LIS331 accelerometer i2c board
-- Generic IBus receiver
+- Radiomaster RP2 ELRS receiver set to inverted-sbus output
 - Repeat Robotics dual AM32 ESC
 
 ## Configuration

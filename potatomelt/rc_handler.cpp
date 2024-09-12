@@ -5,22 +5,18 @@
 #include "rc_handler.h"
 #include "melty_config.h"
 
-bfs::SbusRx Sbus(&Serial1, true);
+/* SBUS object, reading SBUS */
+bfs::SbusRx sbus_rx(&Serial1);
+/* SBUS data */
+bfs::SbusData data;
 
 unsigned long control_checksum;
 unsigned long last_changed_at;
 
+float correction_factor = 1024.0 / NOMINAL_PULSE_RANGE;
+
 bool rc_signal_is_healthy() {
-  unsigned long new_checksum = compute_checksum();
-  unsigned long now = millis();
-  if (new_checksum != control_checksum) {
-    last_changed_at = now;
-    control_checksum = new_checksum;
-    return true;
-  }
-  else {
-    return (now - last_changed_at < CONTROL_MOTION_TIMEOUT_MS);
-  }
+  return !data.lost_frame;
 }
 
 //returns at integer from 0 to 1024 based on throttle position
@@ -31,9 +27,9 @@ int rc_get_throttle_perk() {
   int pulse_length = get_channel(RC_CHANNEL_THROTTLE);
 
   if (pulse_length >= FULL_THROTTLE_PULSE_LENGTH) return 1024;
-  if (pulse_length <= IDLE_THROTTLE_PULSE_LENGTH) return 0;
+  if (pulse_length <= MIN_RC_PULSE_LENGTH + RC_TRIM_EPSILON) return 0;
 
-  return (pulse_length - IDLE_THROTTLE_PULSE_LENGTH) * 1024 / (MAX_RC_PULSE_LENGTH - MIN_RC_PULSE_LENGTH);
+  return (int) ((pulse_length - MIN_RC_PULSE_LENGTH) * correction_factor);
 }
 
 bool rc_get_is_lr_in_config_deadzone() {
@@ -61,7 +57,7 @@ rc_forback rc_get_forback_bit() {
 // Returns -512 -> 512 for the forwards-backwards axis
 int rc_get_forback_trans() {
   int stick_position = get_channel(RC_CHANNEL_FORBACK);
-  return stick_position - CENTER_FORBACK_PULSE_LENGTH;
+  return (int) (stick_position - CENTER_FORBACK_PULSE_LENGTH) * correction_factor;
 }
 
 //returns offset in microseconds from center value (not converted to percentage)
@@ -97,20 +93,19 @@ float rc_get_trans_trim() {
 }
 
 int get_channel(int channel) {
-  bfs::SbusData data = Sbus.data();
   return data.ch[channel];
+}
+
+bool rc_poll() {
+  if (sbus_rx.Read()) {
+    data = sbus_rx.data();
+    return true;
+  }
+
+  return false;
 }
 
 //attach interrupts to rc pins
 void init_rc(void) {
-  Sbus.Begin();
-  control_checksum = compute_checksum();
-  last_changed_at = millis();
-}
-
-// There's no way you're holding completely, perfectly still on the sticks.
-// If the checksum hasn't changed at all in too long, the connection has gone stale.
-unsigned long compute_checksum() {
-  bfs::SbusData data = Sbus.data();
-  return data.ch[0]*64+data.ch[1]*16+data.ch[2]*4+data.ch[3];
+  sbus_rx.Begin();
 }

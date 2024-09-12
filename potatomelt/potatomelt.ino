@@ -69,6 +69,7 @@ void setup() {
 // if JUST_DO_DIAGNOSTIC_LOOP - then we just loop and display debug info via USB (good for testing)
 #ifdef JUST_DO_DIAGNOSTIC_LOOP
   while (1) {
+    rc_poll();
     disable_spin();
     service_watchdog();
     echo_diagnostics();
@@ -91,7 +92,6 @@ init_spin_timer();
 
 // dumps out diagnostics info
 static void echo_diagnostics() {
-
   Serial.print("Raw Accel G: "); Serial.print(get_accel_force_g());
   Serial.print("  RC Health: "); Serial.print(rc_signal_is_healthy());
   Serial.print("  RC Throttle: "); Serial.print(rc_get_throttle_perk());
@@ -209,6 +209,11 @@ void loop() {
     return;
   }
   #endif
+
+  // fast-fail if there's no new RC data to work from
+  if (!rc_poll()) {
+    return;
+  }
 
   // if the rc signal isn't good - assure motors off - and "slow flash" LED
   // this will interrupt a spun-up bot if the signal becomes bad

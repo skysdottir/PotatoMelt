@@ -11,8 +11,8 @@ void init_rc();
 //return true if RC signal looks good
 bool rc_signal_is_healthy();         
 
-// Compute a checksum for the current position of the sticks, to use in the previous
-unsigned long compute_checksum();
+//query the sbus receiver for a new packet
+bool rc_poll();
 
 //returns (0,1023) value indicating throttle level
 int rc_get_throttle_perk();
@@ -81,3 +81,4 @@ int get_channel(int channel);
 
 #define LR_CONFIG_MODE_DEADZONE_WIDTH 100         // deadzone for LR when in config mode (in US) - prevents unintended tracking adjustments
 #define LR_NORMAL_DEADZONE_WIDTH 25               // deadzone for normal drive - can help with unintentional drift when moving forward / back
+#define RC_TRIM_EPSILON 5                         // for "within epsilon" calculation relative to min and max pulse lengths
