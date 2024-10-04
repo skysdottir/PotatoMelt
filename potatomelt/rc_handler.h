@@ -77,7 +77,7 @@ int get_channel(int channel);
 #define CENTER_LEFTRIGHT_PULSE_LENGTH CENTER_RC_PULSE_LENGTH        // center value for left / right
 #define CENTER_FORBACK_PULSE_LENGTH CENTER_RC_PULSE_LENGTH         // center value for for / back
 
-#define FORBACK_MIN_THRESH_PULSE_LENGTH 100       // pulse length must differ by this much from CENTER_FORBACK_PULSE_LENGTH to be considered going forward or back
+#define FORBACK_MIN_THRESH_PULSE_LENGTH 25       // pulse length must differ by this much from CENTER_FORBACK_PULSE_LENGTH to be considered going forward or back
 
 #define LR_CONFIG_MODE_DEADZONE_WIDTH 100         // deadzone for LR when in config mode (in US) - prevents unintended tracking adjustments
 #define LR_NORMAL_DEADZONE_WIDTH 25               // deadzone for normal drive - can help with unintentional drift when moving forward / back

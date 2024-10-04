@@ -171,9 +171,12 @@ void save_parameters() {
 }
 
 void set_accel_zero_offset() {
+  Serial.println("Setting accelerometer offset");
   int offset_samples = 200;
   for (int accel_sample_loop = 0; accel_sample_loop < offset_samples; accel_sample_loop ++) {
     accel_zero_g_offset += get_accel_force_g();
   }
   accel_zero_g_offset = accel_zero_g_offset / offset_samples;
+  Serial.print("Accelerometer offset: ");
+  Serial.println(accel_zero_g_offset);
 }

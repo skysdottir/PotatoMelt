@@ -135,11 +135,13 @@ static void check_config_mode() {
   if (rc_get_forback_bit() == RC_FORBACK_BACKWARD) {
     delay(750);
     if (rc_get_forback_bit() == RC_FORBACK_BACKWARD) {
+      Serial.println("Entering config mode");
       toggle_config_mode(); 
       if (get_config_mode() == false) save_melty_config_settings();    // save melty settings on config mode exit
       
       // wait for user to release stick - so we don't re-toggle modes
       while (rc_get_forback_bit() == RC_FORBACK_BACKWARD) {
+        rc_poll();
         service_watchdog();
       }
     }
@@ -150,7 +152,9 @@ static void check_accel_config_clear()
 {
   if (get_config_mode() && rc_get_accel_save()) {
     delay(750);
+    rc_poll();
     if (rc_get_accel_save()) {
+      Serial.println("Clearing accelerometer correction table");
       clear_correction_table();
     }
   }
@@ -192,6 +196,7 @@ static void handle_battery_crit() {
     }
 
     delay(600);
+    rc_poll();
     service_watchdog();
     echo_diagnostics();
 }

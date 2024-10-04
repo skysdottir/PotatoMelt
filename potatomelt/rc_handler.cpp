@@ -46,11 +46,10 @@ bool rc_get_is_lr_in_normal_deadzone() {
 //returns RC_FORBACK_FORWARD, RC_FORBACK_BACKWARD or RC_FORBACK_NEUTRAL based on stick position
 rc_forback rc_get_forback_bit() {
 
-  int pulse_length = get_channel(RC_CHANNEL_FORBACK);
+  int forback = rc_get_forback_trans();
 
-  int rc_forback_offset = pulse_length - CENTER_FORBACK_PULSE_LENGTH;
-  if (rc_forback_offset > FORBACK_MIN_THRESH_PULSE_LENGTH) return RC_FORBACK_FORWARD;
-  if (rc_forback_offset < (FORBACK_MIN_THRESH_PULSE_LENGTH * -1)) return RC_FORBACK_BACKWARD;
+  if (forback > FORBACK_MIN_THRESH_PULSE_LENGTH) return RC_FORBACK_FORWARD;
+  if (forback < (FORBACK_MIN_THRESH_PULSE_LENGTH * -1)) return RC_FORBACK_BACKWARD;
   return RC_FORBACK_NEUTRAL;
 }
 
