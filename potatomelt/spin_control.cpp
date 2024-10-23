@@ -262,26 +262,20 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   #ifdef USE_PID_THROTTLE_CONTROL
   pid_target_rpm = MAX_TARGET_RPM * rc_get_throttle_perk() / 1024.0;
   throttle_pid.Compute();
-  double throttle_perk = pid_throttle_output;
+  melty_parameters->throttle_perk = (int) pid_throttle_output;
   #else
-  double throttle_perk = rc_get_throttle_perk();
+  melty_parameters->throttle_perk = (int) rc_get_throttle_perk();
   #endif
 
   // translation control!
-  // Because there's a lot of math here, we're going to compute the actual dshot commands once
-  // So then in the hot loop we can just spam the known codes
+  
   float trans_trim = rc_get_trans_trim();
 
-  int throttle_high_perk = min(throttle_perk + (melty_parameters->translation_enabled * translate_disp * throttle_perk * trans_trim / 1024), 1023);
-  int throttle_low_perk = max(throttle_perk - (melty_parameters->translation_enabled * translate_disp * throttle_perk * trans_trim / 1024), 0);
+  melty_parameters->max_throttle_offset = min(melty_parameters->translation_enabled * translate_disp * melty_parameters->throttle_perk * trans_trim / 1024, 1023);
 
   int motor_dir = rc_get_spin_dir();
 
-  throttle_high_perk *= motor_dir;
-  throttle_low_perk *= motor_dir;
-
-  melty_parameters->throttle_high_dshot = perk2dshot(throttle_high_perk);
-  melty_parameters->throttle_low_dshot = perk2dshot(throttle_low_perk);
+  melty_parameters->throttle_perk *= motor_dir;
 
   // if the battery voltage is low - shimmer the LED to let user know
 #ifdef BATTERY_ALERT_ENABLED
@@ -355,11 +349,24 @@ ISR(TIMER3_COMPA_vect) {
     start_time += melty_parameters.rotation_interval_us;
   }
 
-  // translate
+  double throttle_offset = 0;
+
+  //if (melty_parameters.max_throttle_offset > 0) {
+    // translation math time - first, how far into this phase of rotation are we?
+    long micros_into_phase = time_spent_this_rotation_us % (melty_parameters.rotation_interval_us/2);
+    float phase_progress = 2.0 * micros_into_phase / (melty_parameters.rotation_interval_us);
+
+    // What does that mean the sine (approximation) of that distance into the phase is?
+    // Using a parabolic approximation of half a sine wave, that goes from Y=0 to 1 and back in the range X=0..1
+    float phase_offset_fraction = -4 * phase_progress * (phase_progress - 1);
+
+    throttle_offset = (double) (phase_offset_fraction * melty_parameters.max_throttle_offset);
+  //}
+
   if (time_spent_this_rotation_us >= melty_parameters.motor_start_phase_1 && time_spent_this_rotation_us <= melty_parameters.motor_start_phase_2) {
-    motors_on_direct(melty_parameters.throttle_high_dshot, melty_parameters.throttle_low_dshot);
+    motors_on(melty_parameters.throttle_perk + throttle_offset, melty_parameters.throttle_perk - throttle_offset);
   } else {
-    motors_on_direct(melty_parameters.throttle_low_dshot, melty_parameters.throttle_high_dshot);
+    motors_on(melty_parameters.throttle_perk - throttle_offset, melty_parameters.throttle_perk + throttle_offset);
   }
    
     // displays heading LED at correct location

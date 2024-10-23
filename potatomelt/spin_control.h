@@ -36,8 +36,7 @@ typedef struct melty_parameters_t {
   bool spin_enabled;                  // Authorization for the hot loop to spin
   int translation_enabled;            // Authorization for the spinning bot to translate
   int throttle_perk;                  //stores throttle out of 0-1024
-  int throttle_high_dshot;            // for translation, the approaching wheel power, as dshot expects it
-  int throttle_low_dshot;             // for translation, the receeding wheel power, as dshot expects it
+  int max_throttle_offset;            //In a rotation, the furthest from the base throttle setting that each motor might be spun
 	unsigned long rotation_interval_us; //time for 1 rotation of robot
 	unsigned long led_start;            //offset for beginning of LED beacon
 	unsigned long led_stop;             //offset for end of LED beacon

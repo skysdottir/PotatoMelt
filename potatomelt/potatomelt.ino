@@ -66,17 +66,6 @@ void setup() {
   load_melty_config_settings();
 #endif
 
-// if JUST_DO_DIAGNOSTIC_LOOP - then we just loop and display debug info via USB (good for testing)
-#ifdef JUST_DO_DIAGNOSTIC_LOOP
-  while (1) {
-    rc_poll();
-    disable_spin();
-    service_watchdog();
-    echo_diagnostics();
-    delay(250);   //delay prevents serial from getting flooded (can cause issues programming)
-  }
-#endif
-
 init_pid();
 
 // start the interrupt clock!
@@ -84,7 +73,7 @@ init_spin_timer();
 
 #ifdef VERIFY_RC_THROTTLE_ZERO_AT_BOOT 
   wait_for_rc_good_and_zero_throttle();     //Wait for good RC signal at zero throttle
-  delay(MAX_MS_BETWEEN_RC_UPDATES + 1);     //Wait for first RC signal to have expired
+  delay(250);     //Wait for first RC signal to have expired
   wait_for_rc_good_and_zero_throttle();     //Verify RC signal is still good / zero throttle
 #endif
 
@@ -206,6 +195,15 @@ void loop() {
 
   // keep the watchdog happy
   service_watchdog();
+
+  // if JUST_DO_DIAGNOSTIC_LOOP - then we just loop and display debug info via USB (good for testing)
+#ifdef JUST_DO_DIAGNOSTIC_LOOP
+    rc_poll();
+    disable_spin();
+    echo_diagnostics();
+    delay(250);   //delay prevents serial from getting flooded (can cause issues programming)
+    return;
+#endif
 
   #ifdef BATTERY_CRIT_HALT_ENABLED
   if(battery_voltage_crit())
