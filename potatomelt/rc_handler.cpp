@@ -16,7 +16,17 @@ unsigned long last_changed_at;
 float correction_factor = 1024.0 / NOMINAL_PULSE_RANGE;
 
 bool rc_signal_is_healthy() {
-  return !data.lost_frame;
+  unsigned long new_checksum = compute_checksum();
+  unsigned long now = millis();
+  bool pass = false;
+  if (new_checksum != control_checksum) {
+    last_changed_at = now;
+    control_checksum = new_checksum;
+    pass = !data.lost_frame;
+  } else {
+    pass = (now - last_changed_at < CONTROL_MOTION_TIMEOUT_MS) && !data.lost_frame;
+  }
+  return pass;
 }
 
 //returns at integer from 0 to 1024 based on throttle position
@@ -107,4 +117,8 @@ bool rc_poll() {
 //attach interrupts to rc pins
 void init_rc(void) {
   sbus_rx.Begin();
+}
+
+unsigned long compute_checksum() {
+  return data.ch[0]*64 + data.ch[1]*16 + data.ch[2]*4 + data.ch[3];
 }

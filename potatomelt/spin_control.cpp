@@ -39,7 +39,7 @@ double pid_throttle_output = 0.0; // Output from the PID: How hard to run the th
 PID throttle_pid(&pid_current_rpm, &pid_throttle_output, &pid_target_rpm, PID_KP, PID_KI, PID_KD, P_ON_E, DIRECT);
 #endif
 
-//-initial- assignment of melty parameters
+// initial assignment of melty parameters
 melty_parameters_t melty_parameters;
 
 // Globals for spin state - when did we start spinning and how long have we been spinning for?

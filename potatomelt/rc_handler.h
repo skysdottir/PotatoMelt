@@ -11,6 +11,9 @@ void init_rc();
 //return true if RC signal looks good
 bool rc_signal_is_healthy();         
 
+// Commpute a checksum for the last-received radio packet
+unsigned long compute_checksum();
+
 //query the sbus receiver for a new packet
 bool rc_poll();
 
