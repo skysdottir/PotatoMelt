@@ -271,7 +271,7 @@ static void get_melty_parameters(melty_parameters_t *melty_parameters) {
   
   float trans_trim = rc_get_trans_trim();
 
-  melty_parameters->max_throttle_offset = min(melty_parameters->translation_enabled * translate_disp * melty_parameters->throttle_perk * trans_trim / 1024, 1023);
+  melty_parameters->max_throttle_offset = min(melty_parameters->translation_enabled * translate_disp * melty_parameters->throttle_perk * trans_trim / 1024, (melty_parameters->throttle_perk-1));
 
   int motor_dir = rc_get_spin_dir();
 

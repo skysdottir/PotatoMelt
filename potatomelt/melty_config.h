@@ -17,7 +17,7 @@
 
 //----------FEATURES---------
 #define ENABLE_TANK_MODE                          // Toggleable tank-mode driving (useful for positioning the bot in the box pre-spinup)
-#define USE_PID_THROTTLE_CONTROL                  // Use a PID to control RPM, rather than running the throttle directly into the motor power
+// #define USE_PID_THROTTLE_CONTROL                  // Use a PID to control RPM, rather than running the throttle directly into the motor power
 #define USE_TRANSLATION_TRIM                      // Use a control channel to trim the translation algorithm - useful if you have the spare knob
 
 //----------SPIN CONTROL SETTINGS----------
