@@ -55,8 +55,8 @@ void init_spin_timer() {
   TCCR3A = 0; // set entire TCCR1A register to 0
   TCCR3B = 0; // same for TCCR1B
   TCNT3  = 0; // initialize counter value to 0
-  // set compare match register for 2000 Hz increments
-  OCR3A = 7999; // = 16000000 / (1 * 2000) - 1 (must be <65536)
+  // set compare match register for 1000 Hz increments
+  OCR3A = 15999; // = 16000000 / (1 * 1000) - 1 (must be <65536)
   // turn on CTC mode
   TCCR3B |= (1 << WGM12);
   // Set CS12, CS11 and CS10 bits for 1 prescaler
@@ -136,7 +136,7 @@ static void get_rotation_interval_us(melty_parameters_t *melty_parameters) {
     float rpm_adjustment_factor = (float)(rc_get_leftright() / (float)NOMINAL_PULSE_RANGE) / LEFT_RIGHT_HEADING_CONTROL_DIVISOR;
 
     // therefore, we need to subtract it here, so left turns = higher effective RPM
-    rpm = rpm - (rpm * rpm_adjustment_factor);
+    rpm = rpm - ((rpm * rpm_adjustment_factor) * rc_get_spin_dir());
   }
 
   // How fast it'll take us to spin if we don't accelerate or decelerate
