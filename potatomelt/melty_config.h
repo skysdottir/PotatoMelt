@@ -75,5 +75,5 @@
 #define ENABLE_WATCHDOG                           //Uses Adafruit's sleepdog to enable watchdog / reset (tested on AVR - should work for ARM https://github.com/adafruit/Adafruit_SleepyDog)
 #define WATCH_DOG_TIMEOUT_MS 2000                 //Timeout value for watchdog (not all values are supported - 2000ms verified with Arudino Micro)
 #define CONTROL_MOTION_TIMEOUT_MS 3000            //Timeout value for stick motion / loss of signal - backup failsafe system in case the rx doesn't failsafe correctly
-#define JUST_DO_DIAGNOSTIC_LOOP
+// #define JUST_DO_DIAGNOSTIC_LOOP
 #endif
