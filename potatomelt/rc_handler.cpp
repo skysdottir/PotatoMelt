@@ -22,9 +22,9 @@ bool rc_signal_is_healthy() {
   if (new_checksum != control_checksum) {
     last_changed_at = now;
     control_checksum = new_checksum;
-    pass = !data.lost_frame;
+    pass = true;
   } else {
-    pass = (now - last_changed_at < CONTROL_MOTION_TIMEOUT_MS) && !data.lost_frame;
+    pass = (now - last_changed_at < CONTROL_MOTION_TIMEOUT_MS);
   }
   return pass;
 }
