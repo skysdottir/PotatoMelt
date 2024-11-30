@@ -76,25 +76,6 @@ static void echo_diagnostics() {
 
 }
 
-// Used to flash out max recorded RPM 100's of RPMs
-static void display_rpm_if_requested() {
-  // triggered by user pushing throttle up while bot is at idle for 750ms
-  if (rc_get_forback_bit() == RC_FORBACK_FORWARD) {
-    delay(750);
-     // verify throttle at zero to prevent accidental entry into RPM flash
-    if (rc_get_forback_bit() == RC_FORBACK_FORWARD && rc_get_throttle_perk() == 0) {
-       
-      // throttle up cancels RPM count
-      for (int x = 0; x < get_max_rpm() && rc_get_throttle_perk() == 0; x = x + 100) {
-        service_watchdog();   // flashing out RPM can take a while - need to assure watchdog doesn't trigger
-        delay(600); heading_led_on(0);
-        delay(20); heading_led_off();
-      }
-      delay(1500);  // flash-out punctuated with delay to make clear RPM count has completed
-    }
-  }
-}
-
 // checks if user has requested to enter / exit config mode
 static void check_config_mode() {
   // if user pulls control stick back for 750ms - enters (or exits) interactive configuration mode
@@ -139,7 +120,6 @@ static void handle_bot_idle() {
 
     check_config_mode();          // check if user requests we enter / exit config mode
     check_accel_config_clear();
-    display_rpm_if_requested();   // flashed out RPM if user has requested
 
     echo_diagnostics();           // echo diagnostics if bot is idle
 }
