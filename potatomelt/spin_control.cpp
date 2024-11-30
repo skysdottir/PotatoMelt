@@ -8,7 +8,6 @@
 #include "spin_control.h"
 #include "accel_handler.h"
 #include "config_storage.h"
-#include "led_driver.h"
 #include "battery_monitor.h"
 
 #ifdef USE_PID_THROTTLE_CONTROL
@@ -106,6 +105,10 @@ bool get_config_mode() {
 
 int get_max_rpm() {
   return highest_rpm;
+}
+
+void set_led_pattern(LED_Pattern pattern) {
+  melty_parameters.led_pattern = pattern;
 }
 
 // calculates time for this rotation of robot
@@ -336,9 +339,18 @@ void spin_one_iteration(void) {
 
 // The hot loop
 ISR(TIMER3_COMPA_vect) {
-  // fast bail if we aren't supposed to be spinning.
-  // disable_spin() already stopped the motors, so we can just return
+  // If we aren't supposed to be spinning, just update the status light
+  // disable_spin() already turned off the motors, so no need to send any commands to the motor at all
   if (!melty_parameters.spin_enabled) {
+    int nowint = millis() % 1600;
+    nowint /= 100;
+    bool led = (0x01 << nowint) & melty_parameters.led_pattern;
+    if (led) {
+      heading_led_on(false);
+    } else {
+      heading_led_off();
+    }
+    // and bail
     return;
   }
 

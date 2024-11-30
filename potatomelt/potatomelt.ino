@@ -11,7 +11,6 @@
 #include "accel_handler.h"
 #include "spin_control.h"
 #include "config_storage.h"
-#include "led_driver.h"
 #include "battery_monitor.h"
 
 #ifdef ENABLE_TANK_MODE
@@ -26,23 +25,7 @@ void service_watchdog() {
 #ifdef ENABLE_WATCHDOG
     Watchdog.reset();
 #endif
-}
-
-// loops until a good RC signal is detected and throttle is zero (assures safe start)
-static void wait_for_rc_good_and_zero_throttle() {
-    while (rc_signal_is_healthy() == false || rc_get_throttle_perk() > 0) {
-      disable_spin();
-
-      // "slow on/off" for LED while waiting for signal
-      heading_led_on(0); delay(250);
-      heading_led_off(); delay(250);
-      
-      // services watchdog and echo diagnostics while we are waiting for RC signal
-      service_watchdog();
-      echo_diagnostics();
-  }
-}
-  
+} 
 
 // Arduino initial setup function
 void setup() {
@@ -70,12 +53,6 @@ init_pid();
 
 // start the interrupt clock!
 init_spin_timer();
-
-#ifdef VERIFY_RC_THROTTLE_ZERO_AT_BOOT 
-  wait_for_rc_good_and_zero_throttle();     //Wait for good RC signal at zero throttle
-  delay(250);     //Wait for first RC signal to have expired
-  wait_for_rc_good_and_zero_throttle();     //Verify RC signal is still good / zero throttle
-#endif
 
 }
 
@@ -154,15 +131,10 @@ static void handle_bot_idle() {
 
     disable_spin();              // assure motors are off
     
-    // normal LED "fast flash" - indicates RC signal is good while sitting idle
-    heading_led_on(0); delay(30);
-    heading_led_off(); delay(120);
-
-    // if in config mode blip LED again to show "double-flash" 
     if (get_config_mode() == true) {
-      heading_led_off(); delay(400);
-      heading_led_on(0); delay(30);
-      heading_led_off(); delay(140);
+      set_led_pattern(CONFIG);
+    } else {
+      set_led_pattern(READY);
     }
 
     check_config_mode();          // check if user requests we enter / exit config mode
@@ -175,19 +147,11 @@ static void handle_bot_idle() {
 static void handle_battery_crit() {
   disable_spin();
     
-    // "-..." : Morse 'B' for Battery
-    heading_led_on(0); delay(300);
-    heading_led_off(); delay(100);
+  set_led_pattern(BATTERY);
 
-    for(int i = 0; i < 3; i++) {
-      heading_led_on(0); delay(100);
-      heading_led_off(); delay(100);
-    }
-
-    delay(600);
-    rc_poll();
-    service_watchdog();
-    echo_diagnostics();
+  rc_poll();
+  service_watchdog();
+  echo_diagnostics();
 }
 
 // main control loop
@@ -223,8 +187,7 @@ void loop() {
   if (rc_signal_is_healthy() == false) {
     disable_spin();
     
-    heading_led_on(0); delay(30);
-    heading_led_off(); delay(600);
+    set_led_pattern(LOS);
     
     // echo diagnostics while we are waiting for RC signal
     echo_diagnostics();
@@ -250,5 +213,4 @@ void loop() {
   } else {    
     handle_bot_idle();
   }
-
 }

@@ -1,3 +1,4 @@
+#include "led_driver.h"
 
 //does translational drift rotation (robot spins and computes updated parameters)
 void spin_one_iteration(void);
@@ -23,6 +24,9 @@ void load_melty_config_settings();
 //saves melty parameters
 void save_melty_config_settings();
 
+// Update the blinky pattern for when we aren't spinning
+void set_led_pattern(LED_Pattern pattern);
+
 //sets up the timer interrupt for melty drive hot loop
 void init_spin_timer();
 
@@ -33,6 +37,7 @@ void init_pid();
 //all time offsets are in microseconds
 
 typedef struct melty_parameters_t {
+  LED_Pattern led_pattern;               // Current status LED state 
   bool spin_enabled;                  // Authorization for the hot loop to spin
   int translation_enabled;            // Authorization for the spinning bot to translate
   int throttle_perk;                  //stores throttle out of 0-1024

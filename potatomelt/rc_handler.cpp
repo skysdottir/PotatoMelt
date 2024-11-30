@@ -24,7 +24,7 @@ bool rc_signal_is_healthy() {
     control_checksum = new_checksum;
     pass = true;
   } else {
-    pass = (now - last_changed_at < CONTROL_MOTION_TIMEOUT_MS);
+    pass = ((now - last_changed_at) < CONTROL_MOTION_TIMEOUT_MS);
   }
   return pass;
 }
