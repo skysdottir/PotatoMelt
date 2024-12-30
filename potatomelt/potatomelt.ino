@@ -27,6 +27,9 @@ void service_watchdog() {
 #endif
 } 
 
+long last_status_log = 0;
+bool has_LOS = true;
+
 // Arduino initial setup function
 void setup() {
   
@@ -59,7 +62,7 @@ init_spin_timer();
 // dumps out diagnostics info
 static void echo_diagnostics() {
   Serial.print("Raw Accel G: "); Serial.print(get_accel_force_g());
-  Serial.print("  RC Health: "); Serial.print(rc_signal_is_healthy());
+  Serial.print("  RC Health: "); Serial.print(!has_LOS);
   Serial.print("  RC Throttle: "); Serial.print(rc_get_throttle_perk());
   Serial.print("  RC L/R: "); Serial.print(rc_get_leftright());
   Serial.print("  RC F/B: "); Serial.print(rc_get_forback_trans());
@@ -73,7 +76,14 @@ static void echo_diagnostics() {
   Serial.print("  Zero G Offset: "); Serial.print(load_accel_zero_g_offset());
 #endif  
   Serial.println("");
+}
 
+static void loggit(String message) {
+  Serial.print("LOG: ");
+  Serial.print(millis());
+  Serial.print(" : ");
+  Serial.print(message);
+  Serial.println("");
 }
 
 // checks if user has requested to enter / exit config mode
@@ -82,7 +92,7 @@ static void check_config_mode() {
   if (rc_get_forback_bit() == RC_FORBACK_BACKWARD) {
     delay(750);
     if (rc_get_forback_bit() == RC_FORBACK_BACKWARD) {
-      Serial.println("Entering config mode");
+      loggit("Entering config mode");
       toggle_config_mode(); 
       if (get_config_mode() == false) save_melty_config_settings();    // save melty settings on config mode exit
       
@@ -101,7 +111,7 @@ static void check_accel_config_clear()
     delay(750);
     rc_poll();
     if (rc_get_accel_save()) {
-      Serial.println("Clearing accelerometer correction table");
+      loggit("Clearing accelerometer correction table");
       clear_correction_table();
     }
   }
@@ -120,8 +130,6 @@ static void handle_bot_idle() {
 
     check_config_mode();          // check if user requests we enter / exit config mode
     check_accel_config_clear();
-
-    echo_diagnostics();           // echo diagnostics if bot is idle
 }
 
 static void handle_battery_crit() {
@@ -131,7 +139,6 @@ static void handle_battery_crit() {
 
   rc_poll();
   service_watchdog();
-  echo_diagnostics();
 }
 
 // main control loop
@@ -139,6 +146,13 @@ void loop() {
 
   // keep the watchdog happy
   service_watchdog();
+
+  long now = millis();
+  if (now - last_status_log > 1000) {
+    last_status_log = now;
+    echo_diagnostics();
+    has_LOS = false;
+  }
 
   // if JUST_DO_DIAGNOSTIC_LOOP - then we just loop and display debug info via USB (good for testing)
 #ifdef JUST_DO_DIAGNOSTIC_LOOP
@@ -167,10 +181,9 @@ void loop() {
   if (rc_signal_is_healthy() == false) {
     disable_spin();
     
+    has_LOS = true;
+
     set_led_pattern(LOS);
-    
-    // echo diagnostics while we are waiting for RC signal
-    echo_diagnostics();
 
     // And then bail
     return;
